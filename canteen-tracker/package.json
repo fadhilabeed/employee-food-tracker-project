@@ -1,0 +1,29 @@
+{
+  "name": "canteen-tracker",
+  "version": "1.0.0",
+  "description": "Web-based employee canteen food tracker",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "db:up": "docker compose up -d db",
+    "db:down": "docker compose down",
+    "db:logs": "docker compose logs -f db"
+  },
+  "keywords": [
+    "canteen",
+    "qr",
+    "tracker",
+    "express",
+    "postgres"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "archiver": "^7.0.1",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "pg": "^8.12.0",
+    "qrcode": "^1.5.3"
+  }
+}

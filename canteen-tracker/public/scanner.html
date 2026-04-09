@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Canteen Scanner</title>
+    <link rel="stylesheet" href="/style.css" />
+    <script src="https://unpkg.com/html5-qrcode" defer></script>
+  </head>
+  <body class="scanner-page">
+    <header class="scanner-head">
+      <h1 class="title">Canteen Scanner</h1>
+      <div class="meta">
+        <span id="today"></span> | Scans today: <strong id="scanCount">0</strong>
+      </div>
+      <a href="/admin.html" style="color: #fff;">Open Admin Dashboard</a>
+    </header>
+
+    <main class="scanner-main">
+      <div id="reader"></div>
+    </main>
+
+    <div id="resultScreen" class="result-screen">
+      <div class="result-box">
+        <h2 id="resultTitle" class="result-title"></h2>
+        <p id="resultSub" class="result-sub"></p>
+      </div>
+    </div>
+
+    <script>
+      const todayEl = document.getElementById("today");
+      const scanCountEl = document.getElementById("scanCount");
+      const resultScreen = document.getElementById("resultScreen");
+      const resultTitle = document.getElementById("resultTitle");
+      const resultSub = document.getElementById("resultSub");
+
+      let isHandlingScan = false;
+      let scanCount = 0;
+
+      function setToday() {
+        const today = new Date().toLocaleDateString(undefined, {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+          weekday: "long"
+        });
+        todayEl.textContent = today;
+      }
+
+      async function refreshScanCount() {
+        const dateInput = new Date().toISOString().slice(0, 10);
+        const res = await fetch(`/api/logs?date=${dateInput}`);
+        if (!res.ok) return;
+        const logs = await res.json();
+        scanCount = logs.length;
+        scanCountEl.textContent = String(scanCount);
+      }
+
+      function showResult(kind, title, subText) {
+        resultScreen.className = `result-screen show ${
+          kind === "ALLOWED" ? "result-allowed" : "result-denied"
+        }`;
+        resultTitle.textContent = title;
+        resultSub.textContent = subText;
+      }
+
+      function hideResult() {
+        resultScreen.className = "result-screen";
+      }
+
+      async function handleScan(decodedText) {
+        if (isHandlingScan) return;
+        isHandlingScan = true;
+
+        try {
+          const res = await fetch("/api/scan", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ emp_code: decodedText.trim() })
+          });
+
+          const data = await res.json();
+          if (!res.ok) {
+            throw new Error(data.error || "Scan request failed");
+          }
+
+          if (data.status === "ALLOWED") {
+            showResult(
+              "ALLOWED",
+              "ALLOWED",
+              `${data.employee.full_name} - ${data.employee.department || "N/A"}`
+            );
+          } else {
+            const reason = data.reason === "quota_used" ? "Quota used today" : "Unknown / inactive";
+            showResult("DENIED", "DENIED", reason);
+          }
+
+          await refreshScanCount();
+        } catch (error) {
+          showResult("DENIED", "ERROR", error.message);
+        } finally {
+          setTimeout(() => {
+            hideResult();
+            isHandlingScan = false;
+          }, 3000);
+        }
+      }
+
+      function startScanner() {
+        const scanner = new Html5QrcodeScanner(
+          "reader",
+          { fps: 10, qrbox: { width: 280, height: 280 } },
+          false
+        );
+
+        scanner.render(
+          (decodedText) => {
+            void handleScan(decodedText);
+          },
+          () => {}
+        );
+      }
+
+      async function init() {
+        setToday();
+        await refreshScanCount();
+        startScanner();
+      }
+
+      void init();
+    </script>
+  </body>
+  </html>
