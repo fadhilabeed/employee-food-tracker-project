@@ -4,6 +4,7 @@ require("dotenv").config();
 
 const scanRoutes = require("./routes/scan");
 const adminRoutes = require("./routes/admin");
+const initSchema = require("./db/init");
 
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
@@ -26,7 +27,15 @@ app.use((error, _req, res, _next) => {
   return res.status(500).json({ error: error.message });
 });
 
-app.listen(PORT, () => {
-  // eslint-disable-next-line no-console
-  console.log(`Server running on http://localhost:${PORT}`);
-});
+initSchema()
+  .then(() => {
+    app.listen(PORT, () => {
+      // eslint-disable-next-line no-console
+      console.log(`Server running on http://localhost:${PORT}`);
+    });
+  })
+  .catch((err) => {
+    // eslint-disable-next-line no-console
+    console.error("Startup failed during schema initialisation:", err.message);
+    process.exit(1);
+  });
