@@ -51,7 +51,8 @@
       <section class="card">
         <div class="topbar">
           <h2 style="margin: 0;">Employees</h2>
-          <div style="display: flex; gap: 8px; align-items: center;">
+          <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+            <input id="searchInput" placeholder="Search employees" style="min-width:220px;padding:6px 8px;" />
             <label for="sortBy">Sort by:</label>
             <select id="sortBy">
               <option value="emp_code">Emp Code</option>
@@ -65,6 +66,18 @@
               <option value="desc">Descending</option>
             </select>
           </div>
+        </div>
+        <div class="table-controls" style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <label for="rowsPerPage">Rows per page:</label>
+            <select id="rowsPerPage">
+              <option value="10">10</option>
+              <option value="25">25</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+            </select>
+          </div>
+          <div id="paginationSummary" style="font-size:0.95rem;color:#555;">Showing 0–0 of 0 employees</div>
         </div>
         <table>
           <thead>
@@ -80,6 +93,16 @@
           </thead>
           <tbody id="employeeBody"></tbody>
         </table>
+        <div class="pagination-bar" style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:12px;flex-wrap:wrap;">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <button id="firstPageBtn" type="button" class="secondary">First</button>
+            <button id="prevPageBtn" type="button" class="secondary">Previous</button>
+            <span id="pageIndicator">Page 1 of 1</span>
+            <button id="nextPageBtn" type="button" class="secondary">Next</button>
+            <button id="lastPageBtn" type="button" class="secondary">Last</button>
+          </div>
+          <div id="pageCountSummary" style="font-size:0.95rem;color:#555;">Showing 0–0 of 0 employees</div>
+        </div>
       </section>
 
       <section class="card">
@@ -120,8 +143,19 @@
       const sortDirSelect = document.getElementById("sortDir");
       const bulkCsvFile = document.getElementById("bulkCsvFile");
       const bulkCsvBtn = document.getElementById("bulkCsvBtn");
+      const searchInput = document.getElementById("searchInput");
+      const rowsPerPageSelect = document.getElementById("rowsPerPage");
+      const firstPageBtn = document.getElementById("firstPageBtn");
+      const prevPageBtn = document.getElementById("prevPageBtn");
+      const nextPageBtn = document.getElementById("nextPageBtn");
+      const lastPageBtn = document.getElementById("lastPageBtn");
+      const pageIndicator = document.getElementById("pageIndicator");
+      const pageCountSummary = document.getElementById("pageCountSummary");
+      const paginationSummary = document.getElementById("paginationSummary");
 
       let employeesCache = [];
+      let currentPage = 1;
+      let pageSize = 10;
       const LOGS_POLL_INTERVAL_MS = 5000;
 
       function todayISO() {
@@ -195,9 +229,20 @@
         }
       }
 
-      function renderEmployees(employees) {
-        const sortedEmployees = getSortedEmployees(employees);
-        employeeBody.innerHTML = sortedEmployees
+      function getFilteredEmployees(employees) {
+        const query = searchInput.value.trim().toLowerCase();
+        if (!query) return [...employees];
+
+        return employees.filter((emp) => {
+          const code = String(emp.emp_code ?? "").toLowerCase();
+          const name = String(emp.full_name ?? "").toLowerCase();
+          const dept = String(emp.department ?? "").toLowerCase();
+          return code.includes(query) || name.includes(query) || dept.includes(query);
+        });
+      }
+
+      function renderEmployeeRows(employees) {
+        employeeBody.innerHTML = employees
           .map((emp) => {
             const statusClass = emp.status === "ELIGIBLE"
               ? "eligible"
@@ -255,6 +300,43 @@
           .join("");
       }
 
+      function renderPagination(totalItems) {
+        const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+        if (currentPage > totalPages) {
+          currentPage = totalPages;
+        }
+
+        pageIndicator.textContent = `Page ${currentPage} of ${totalPages}`;
+        const start = totalItems === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+        const end = Math.min(totalItems, currentPage * pageSize);
+        const summaryText = `Showing ${start}–${end} of ${totalItems} employees`;
+        pageCountSummary.textContent = summaryText;
+        paginationSummary.textContent = summaryText;
+
+        firstPageBtn.disabled = currentPage === 1;
+        prevPageBtn.disabled = currentPage === 1;
+        nextPageBtn.disabled = currentPage === totalPages;
+        lastPageBtn.disabled = currentPage === totalPages;
+      }
+
+      function renderTable(employees) {
+        const filteredEmployees = getFilteredEmployees(employees);
+        const sortedEmployees = getSortedEmployees(filteredEmployees);
+        const totalItems = sortedEmployees.length;
+        const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+
+        if (currentPage > totalPages) {
+          currentPage = totalPages;
+        }
+
+        const start = (currentPage - 1) * pageSize;
+        const end = start + pageSize;
+        const visible = sortedEmployees.slice(start, end);
+
+        renderEmployeeRows(visible);
+        renderPagination(totalItems);
+      }
+
       function renderLogs(logs) {
         logBody.innerHTML = logs
           .map((log) => {
@@ -282,7 +364,7 @@
           fetchDepartments()
         ]);
         employeesCache = employees;
-        renderEmployees(employeesCache);
+        renderTable(employeesCache);
         renderLogs(logs);
         renderDepartments(departments);
       }
@@ -425,11 +507,46 @@
       });
 
       sortBySelect.addEventListener("change", () => {
-        renderEmployees(employeesCache);
+        renderTable(employeesCache);
       });
 
       sortDirSelect.addEventListener("change", () => {
-        renderEmployees(employeesCache);
+        renderTable(employeesCache);
+      });
+
+      searchInput.addEventListener("input", () => {
+        currentPage = 1;
+        renderTable(employeesCache);
+      });
+
+      rowsPerPageSelect.addEventListener("change", () => {
+        pageSize = Number(rowsPerPageSelect.value) || 10;
+        currentPage = 1;
+        renderTable(employeesCache);
+      });
+
+      firstPageBtn.addEventListener("click", () => {
+        currentPage = 1;
+        renderTable(employeesCache);
+      });
+
+      prevPageBtn.addEventListener("click", () => {
+        if (currentPage > 1) {
+          currentPage -= 1;
+          renderTable(employeesCache);
+        }
+      });
+
+      nextPageBtn.addEventListener("click", () => {
+        currentPage += 1;
+        renderTable(employeesCache);
+      });
+
+      lastPageBtn.addEventListener("click", () => {
+        const totalItems = getSortedEmployees(getFilteredEmployees(employeesCache)).length;
+        const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+        currentPage = totalPages;
+        renderTable(employeesCache);
       });
 
       downloadDeptQrBtn.addEventListener("click", () => {
@@ -451,7 +568,7 @@
           fetchDepartments()
         ]);
         employeesCache = employees;
-        renderEmployees(employeesCache);
+        renderTable(employeesCache);
         renderLogs(logs);
         renderDepartments(departments);
       }
