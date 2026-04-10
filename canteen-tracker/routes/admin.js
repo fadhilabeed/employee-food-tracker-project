@@ -1,13 +1,151 @@
 const express = require("express");
 const archiver = require("archiver");
+const multer = require("multer");
 const QRCode = require("qrcode");
 const pool = require("../db");
 
 const router = express.Router();
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 8 * 1024 * 1024 }
+});
 const getErrMsg = (error) =>
   (error && typeof error.message === "string" && error.message.trim()) ||
   String(error) ||
   "Internal server error";
+
+function parseCsvLine(line) {
+  const cells = [];
+  let current = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < line.length; i += 1) {
+    const char = line[i];
+    if (char === '"') {
+      if (inQuotes && line[i + 1] === '"') {
+        current += '"';
+        i += 1;
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (char === "," && !inQuotes) {
+      cells.push(current.trim());
+      current = "";
+    } else {
+      current += char;
+    }
+  }
+  cells.push(current.trim());
+  return cells;
+}
+
+function parseEmployeesCsv(text) {
+  const normalized = text.replace(/^\uFEFF/, "");
+  const lines = normalized.split(/\r?\n/).filter((line) => line.trim().length > 0);
+  if (lines.length === 0) {
+    return { rows: [], error: "empty file" };
+  }
+
+  const headerCells = parseCsvLine(lines[0]).map((h) => h.toLowerCase().replace(/\s+/g, "_"));
+  let idxCode = headerCells.indexOf("emp_code");
+  let idxName = headerCells.indexOf("full_name");
+  let idxDept = headerCells.indexOf("department");
+
+  if (idxCode === -1 && headerCells.includes("code")) {
+    idxCode = headerCells.indexOf("code");
+  }
+  if (idxName === -1 && headerCells.includes("name")) {
+    idxName = headerCells.indexOf("name");
+  }
+  if (idxDept === -1 && headerCells.includes("dept")) {
+    idxDept = headerCells.indexOf("dept");
+  }
+
+  if (idxCode === -1 || idxName === -1) {
+    return {
+      rows: [],
+      error: "CSV must include header row with emp_code (or code) and full_name (or name)"
+    };
+  }
+
+  const rows = [];
+  for (let i = 1; i < lines.length; i += 1) {
+    const cells = parseCsvLine(lines[i]);
+    const empCode = cells[idxCode] ? cells[idxCode].trim() : "";
+    const fullName = cells[idxName] ? cells[idxName].trim() : "";
+    const department =
+      idxDept !== -1 && cells[idxDept] ? cells[idxDept].trim() : "";
+    if (!empCode && !fullName) continue;
+    rows.push({
+      emp_code: empCode,
+      full_name: fullName,
+      department: department || null
+    });
+  }
+
+  return { rows };
+}
+
+async function bulkInsertEmployees(rows, res) {
+  if (!rows.length) {
+    return res.status(400).json({ error: "no valid rows to import" });
+  }
+
+  const client = await pool.connect();
+  const inserted = [];
+  const skipped = [];
+  const errors = [];
+
+  try {
+    await client.query("BEGIN");
+    for (let i = 0; i < rows.length; i += 1) {
+      const row = rows[i];
+      const empCode = typeof row.emp_code === "string" ? row.emp_code.trim() : "";
+      const fullName = typeof row.full_name === "string" ? row.full_name.trim() : "";
+      const dept =
+        row.department === null || row.department === undefined
+          ? null
+          : String(row.department).trim();
+
+      if (!empCode || !fullName) {
+        errors.push({ index: i, emp_code: empCode || null, error: "emp_code and full_name required" });
+        continue;
+      }
+
+      try {
+        const result = await client.query(
+          `INSERT INTO employees (emp_code, full_name, department)
+           VALUES ($1, $2, $3)
+           ON CONFLICT (emp_code) DO NOTHING
+           RETURNING id, emp_code, full_name, department, is_active`,
+          [empCode, fullName, dept || null]
+        );
+        if (result.rowCount === 0) {
+          skipped.push({ emp_code: empCode, reason: "duplicate" });
+        } else {
+          inserted.push(result.rows[0]);
+        }
+      } catch (error) {
+        errors.push({ index: i, emp_code: empCode, error: getErrMsg(error) });
+      }
+    }
+
+    await client.query("COMMIT");
+    return res.status(201).json({
+      inserted: inserted.length,
+      skipped: skipped.length,
+      error_count: errors.length,
+      skipped_detail: skipped,
+      errors,
+      employees: inserted
+    });
+  } catch (error) {
+    await client.query("ROLLBACK");
+    return res.status(500).json({ error: getErrMsg(error) });
+  } finally {
+    client.release();
+  }
+}
 
 router.get("/employees", async (_req, res) => {
   try {
@@ -42,6 +180,27 @@ router.get("/departments", async (_req, res) => {
   } catch (error) {
     return res.status(500).json({ error: getErrMsg(error) });
   }
+});
+
+router.post("/employees/bulk", async (req, res) => {
+  const { employees } = req.body;
+  if (!Array.isArray(employees) || employees.length === 0) {
+    return res.status(400).json({ error: "employees must be a non-empty array" });
+  }
+  return bulkInsertEmployees(employees, res);
+});
+
+router.post("/employees/import/csv", upload.single("file"), async (req, res) => {
+  if (!req.file || !req.file.buffer) {
+    return res.status(400).json({ error: "CSV file required (form field name: file)" });
+  }
+
+  const text = req.file.buffer.toString("utf8");
+  const parsed = parseEmployeesCsv(text);
+  if (parsed.error) {
+    return res.status(400).json({ error: parsed.error });
+  }
+  return bulkInsertEmployees(parsed.rows, res);
 });
 
 router.post("/employees", async (req, res) => {
@@ -98,6 +257,37 @@ router.patch("/employees/:id", async (req, res) => {
     return res.json(result.rows[0]);
   } catch (error) {
     return res.status(500).json({ error: getErrMsg(error) });
+  }
+});
+
+router.delete("/employees/:id", async (req, res) => {
+  const id = Number(req.params.id);
+
+  if (!Number.isInteger(id)) {
+    return res.status(400).json({ error: "invalid employee id" });
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    await client.query(`DELETE FROM meal_logs WHERE emp_id = $1`, [id]);
+    const result = await client.query(
+      `DELETE FROM employees WHERE id = $1 RETURNING id, emp_code, full_name`,
+      [id]
+    );
+
+    if (result.rowCount === 0) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ error: "employee not found" });
+    }
+
+    await client.query("COMMIT");
+    return res.json({ ok: true, deleted: result.rows[0] });
+  } catch (error) {
+    await client.query("ROLLBACK");
+    return res.status(500).json({ error: getErrMsg(error) });
+  } finally {
+    client.release();
   }
 });
 

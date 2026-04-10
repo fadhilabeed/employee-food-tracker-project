@@ -16,6 +16,14 @@
           <button id="downloadDeptQrBtn" class="secondary">
             Download Department QRs
           </button>
+          <details>
+            <summary style="cursor: pointer;">Import Excel</summary>
+            <div style="display: flex; gap: 8px; align-items: center; margin-top: 6px;">
+              <input type="file" id="bulkCsvFile" accept=".csv,text/csv,text/plain" />
+              <button type="button" id="bulkCsvBtn" class="secondary">Upload</button>
+              <a href="/employees_import_template.csv" download>Template</a>
+            </div>
+          </details>
           <a href="/scanner.html">Open Scanner</a>
         </div>
       </div>
@@ -67,6 +75,7 @@
               <th>Status</th>
               <th>Active</th>
               <th>QR</th>
+              <th>Delete</th>
             </tr>
           </thead>
           <tbody id="employeeBody"></tbody>
@@ -109,6 +118,8 @@
       const qrDepartmentSelect = document.getElementById("qrDepartment");
       const sortBySelect = document.getElementById("sortBy");
       const sortDirSelect = document.getElementById("sortDir");
+      const bulkCsvFile = document.getElementById("bulkCsvFile");
+      const bulkCsvBtn = document.getElementById("bulkCsvBtn");
 
       let employeesCache = [];
       const LOGS_POLL_INTERVAL_MS = 5000;
@@ -226,6 +237,16 @@
                 <td>
                   <button class="secondary" data-download-qr="${emp.id}">
                     Download QR
+                  </button>
+                </td>
+                <td>
+                  <button
+                    class="danger"
+                    data-delete-employee="${emp.id}"
+                    data-emp-code="${escapeHtml(emp.emp_code)}"
+                    style="padding: 4px 8px; font-size: 12px;"
+                  >
+                    Delete
                   </button>
                 </td>
               </tr>
@@ -347,9 +368,51 @@
           return;
         }
 
+        const deleteId = target.getAttribute("data-delete-employee");
+        if (deleteId) {
+          const code = target.getAttribute("data-emp-code") || deleteId;
+          if (!window.confirm(`Delete employee ${code} and all their meal log rows? This cannot be undone.`)) {
+            return;
+          }
+          void (async () => {
+            try {
+              const res = await fetch(`/api/employees/${deleteId}`, { method: "DELETE" });
+              const data = await res.json();
+              if (!res.ok) throw new Error(data.error || "Failed to delete employee");
+              await reloadAll();
+            } catch (error) {
+              alert(error.message);
+            }
+          })();
+          return;
+        }
+
         const id = target.getAttribute("data-download-qr");
         if (!id) return;
         window.open(`/api/employees/${id}/qr`, "_blank");
+      });
+
+      bulkCsvBtn.addEventListener("click", async () => {
+        const fileInput = bulkCsvFile;
+        if (!fileInput.files || fileInput.files.length === 0) {
+          alert("Choose a CSV file first");
+          return;
+        }
+        const formData = new FormData();
+        formData.append("file", fileInput.files[0]);
+        try {
+          const res = await fetch("/api/employees/import/csv", {
+            method: "POST",
+            body: formData
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || "Import failed");
+          bulkCsvFile.value = "";
+          alert(`Import complete: inserted ${data.inserted}, skipped ${data.skipped}, errors ${data.error_count}`);
+          await reloadAll();
+        } catch (error) {
+          alert(error.message);
+        }
       });
 
       loadLogsBtn.addEventListener("click", async () => {

@@ -107,7 +107,14 @@ If you already have PostgreSQL installed locally, you can run:
 - `GET /api/employees`
 - `GET /api/departments`
 - `POST /api/employees`
+- `POST /api/employees/bulk` — body `{ "employees": [{ "emp_code", "full_name", "department?" }] }` (duplicates skipped)
+- `POST /api/employees/import/csv` — multipart form field `file` (CSV from Excel: save as CSV UTF-8; headers `emp_code`, `full_name`, optional `department`)
+- `DELETE /api/employees/:id` — removes employee and their `meal_logs` rows
 - `PATCH /api/employees/:id`
 - `GET /api/logs?date=YYYY-MM-DD`
 - `GET /api/employees/:id/qr`
 - `GET /api/employees/qr/bulk?department=<department-name>`
+
+### Bulk import files
+
+- `public/employees_import_template.csv` — downloadable CSV template (also under `db/employees_import_template.csv`)

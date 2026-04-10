@@ -36,6 +36,47 @@
 
       let isHandlingScan = false;
       let scanCount = 0;
+      let audioCtx = null;
+
+      function getAudioContext() {
+        if (!audioCtx) {
+          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+          if (!AudioContextClass) return null;
+          audioCtx = new AudioContextClass();
+        }
+        return audioCtx;
+      }
+
+      function playTone({ frequency, duration, type = "sine", gain = 0.12, delay = 0 }) {
+        const ctx = getAudioContext();
+        if (!ctx) return;
+
+        const now = ctx.currentTime + delay;
+        const oscillator = ctx.createOscillator();
+        const gainNode = ctx.createGain();
+
+        oscillator.type = type;
+        oscillator.frequency.setValueAtTime(frequency, now);
+        gainNode.gain.setValueAtTime(0.0001, now);
+        gainNode.gain.exponentialRampToValueAtTime(gain, now + 0.01);
+        gainNode.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+
+        oscillator.connect(gainNode);
+        gainNode.connect(ctx.destination);
+
+        oscillator.start(now);
+        oscillator.stop(now + duration);
+      }
+
+      function playSuccessSound() {
+        playTone({ frequency: 880, duration: 0.12, type: "triangle", gain: 0.09 });
+        playTone({ frequency: 1175, duration: 0.16, type: "triangle", gain: 0.1, delay: 0.1 });
+      }
+
+      function playFailSound() {
+        playTone({ frequency: 320, duration: 0.22, type: "sawtooth", gain: 0.08 });
+        playTone({ frequency: 220, duration: 0.26, type: "sawtooth", gain: 0.08, delay: 0.12 });
+      }
 
       function setToday() {
         const today = new Date().toLocaleDateString(undefined, {
@@ -85,18 +126,21 @@
           }
 
           if (data.status === "ALLOWED") {
+            playSuccessSound();
             showResult(
               "ALLOWED",
               "ALLOWED",
               `${data.employee.full_name} - ${data.employee.department || "N/A"}`
             );
           } else {
+            playFailSound();
             const reason = data.reason === "quota_used" ? "Quota used today" : "Unknown / inactive";
             showResult("DENIED", "DENIED", reason);
           }
 
           await refreshScanCount();
         } catch (error) {
+          playFailSound();
           showResult("DENIED", "ERROR", error.message);
         } finally {
           setTimeout(() => {
