@@ -31,9 +31,9 @@ app.use(
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      sameSite: "lax",
+      sameSite: "strict",
       maxAge: SESSION_MAX_AGE_MS,
-      secure: process.env.NODE_ENV === "production"
+      secure: "auto"
     },
     rolling: true
   })
@@ -87,6 +87,12 @@ app.post("/api/auth/login", async (req, res) => {
       });
     });
     req.session.is_admin = true;
+    await new Promise((resolve, reject) => {
+      req.session.save((error) => {
+        if (error) return reject(error);
+        return resolve();
+      });
+    });
     return res.json({ success: true });
   } catch (_error) {
     return res.status(500).json({ error: "Failed to create session" });
