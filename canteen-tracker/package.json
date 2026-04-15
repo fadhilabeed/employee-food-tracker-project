@@ -25,6 +25,7 @@
     "dotenv": "^16.4.5",
     "exceljs": "^4.4.0",
     "express": "^4.19.2",
+    "connect-pg-simple": "^10.0.0",
     "express-session": "^1.18.1",
     "multer": "^2.0.2",
     "pg": "^8.12.0",

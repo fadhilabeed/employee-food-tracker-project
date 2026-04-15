@@ -1,8 +1,10 @@
 const express = require("express");
 const path = require("path");
 const session = require("express-session");
+const connectPgSimple = require("connect-pg-simple");
 require("dotenv").config();
 
+const pool = require("./db");
 const scanRoutes = require("./routes/scan");
 const adminRoutes = require("./routes/admin");
 const initSchema = require("./db/init");
@@ -24,8 +26,11 @@ const SESSION_SECRET = typeof process.env.SESSION_SECRET === "string"
   ? process.env.SESSION_SECRET.trim()
   : "dev_session_secret_change_me";
 
+const sessionStore = new (connectPgSimple(session))({ pool });
+
 app.use(
   session({
+    store: sessionStore,
     secret: SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
