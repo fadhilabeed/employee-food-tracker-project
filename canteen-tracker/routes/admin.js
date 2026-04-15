@@ -515,26 +515,32 @@ router.get("/employees/qr/bulk", async (req, res) => {
   const rawDepartment =
     typeof req.query.department === "string" ? req.query.department.trim() : "";
 
-  if (!rawDepartment) {
-    return res.status(400).json({ error: "department query is required" });
-  }
-
   try {
+    const queryParams = [];
+    let whereClause = "";
+    if (rawDepartment) {
+      queryParams.push(rawDepartment);
+      whereClause = "WHERE department = $1";
+    }
+
     const result = await pool.query(
       `SELECT id, emp_code
        FROM employees
-       WHERE department = $1
-       ORDER BY id ASC`
-      ,
-      [rawDepartment]
+       ${whereClause}
+       ORDER BY id ASC`,
+      queryParams
     );
 
     if (result.rowCount === 0) {
-      return res.status(404).json({ error: "no employees found for department" });
+      return res
+        .status(404)
+        .json({ error: rawDepartment ? "no employees found for department" : "no employees found" });
     }
 
-    const safeDepartment = rawDepartment.replaceAll(/[^a-zA-Z0-9_-]/g, "_");
-    const fileName = `employee-qrs-${safeDepartment}-${new Date().toISOString().slice(0, 10)}.zip`;
+    const fileLabel = rawDepartment
+      ? rawDepartment.replaceAll(/[^a-zA-Z0-9_-]/g, "_")
+      : "all-employees";
+    const fileName = `employee-qrs-${fileLabel}-${new Date().toISOString().slice(0, 10)}.zip`;
     res.setHeader("Content-Type", "application/zip");
     res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
 

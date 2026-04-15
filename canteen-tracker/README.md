@@ -113,7 +113,8 @@ If you already have PostgreSQL installed locally, you can run:
 - `PATCH /api/employees/:id`
 - `GET /api/logs?date=YYYY-MM-DD`
 - `GET /api/employees/:id/qr`
-- `GET /api/employees/qr/bulk?department=<department-name>`
+- `GET /api/employees/qr/bulk`
+- `GET /api/employees/qr/bulk?department=<department-name>` — optional department filter
 
 ### Bulk import files
 

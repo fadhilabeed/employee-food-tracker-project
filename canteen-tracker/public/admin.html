@@ -23,10 +23,10 @@
 
       <section class="admin-actionbar card">
         <div class="admin-action-left inline-controls">
-          <label for="qrDepartment">QR Department:</label>
+          <label for="qrDepartment">QR Scope:</label>
           <select id="qrDepartment" class="nav-select"></select>
           <button id="downloadDeptQrBtn" class="secondary">
-            Download Department QRs
+            Download QR Codes
           </button>
         </div>
         <div class="admin-action-right inline-controls">
@@ -271,23 +271,21 @@
 
       function renderDepartments(departments) {
         const previousValue = qrDepartmentSelect.value;
-        qrDepartmentSelect.innerHTML = departments
-          .map(
-            (department) =>
-              `<option value="${escapeHtml(department)}">${escapeHtml(department)}</option>`
-          )
-          .join("");
+        qrDepartmentSelect.innerHTML = `
+          <option value="">All Employees</option>
+          ${departments
+            .map(
+              (department) =>
+                `<option value="${escapeHtml(department)}">${escapeHtml(department)}</option>`
+            )
+            .join("")}
+        `;
 
-        if (!departments.length) {
-          qrDepartmentSelect.innerHTML = '<option value="">No departments</option>';
-          qrDepartmentSelect.disabled = true;
-          downloadDeptQrBtn.disabled = true;
-          return;
-        }
-
-        qrDepartmentSelect.disabled = false;
-        downloadDeptQrBtn.disabled = false;
-        if (departments.includes(previousValue)) {
+        qrDepartmentSelect.disabled = employeesCache.length === 0;
+        downloadDeptQrBtn.disabled = employeesCache.length === 0;
+        if (!previousValue) {
+          qrDepartmentSelect.value = "";
+        } else if (departments.includes(previousValue)) {
           qrDepartmentSelect.value = previousValue;
         }
 
@@ -687,14 +685,10 @@
 
       downloadDeptQrBtn.addEventListener("click", () => {
         const department = qrDepartmentSelect.value;
-        if (!department) {
-          alert("Please select a department first");
-          return;
-        }
-        window.open(
-          `/api/employees/qr/bulk?department=${encodeURIComponent(department)}`,
-          "_blank"
-        );
+        const query = department
+          ? `?department=${encodeURIComponent(department)}`
+          : "";
+        window.open(`/api/employees/qr/bulk${query}`, "_blank");
       });
 
       exportLogsBtn.addEventListener("click", () => {
