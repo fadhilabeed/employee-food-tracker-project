@@ -9,15 +9,23 @@
   </head>
   <body class="scanner-page">
     <header class="scanner-head">
-      <h1 class="title">Canteen Scanner</h1>
-      <div class="meta">
-        <span id="today"></span> | Scans today: <strong id="scanCount">0</strong>
+      <div>
+        <h1 class="title">Canteen Scanner</h1>
+        <p class="scanner-subtitle">Quick and secure meal scan validation</p>
       </div>
-      <a href="/admin.html" style="color: #fff;">Open Admin Dashboard</a>
+      <div class="scanner-meta-card">
+        <div class="meta">
+          <span id="today"></span>
+        </div>
+        <div class="meta">Scans today: <strong id="scanCount">0</strong></div>
+      </div>
+      <a href="/admin" class="scanner-admin-link">Open Admin Dashboard</a>
     </header>
 
     <main class="scanner-main">
-      <div id="reader"></div>
+      <div class="scanner-card">
+        <div id="reader"></div>
+      </div>
     </main>
 
     <div id="resultScreen" class="result-screen">
@@ -89,11 +97,10 @@
       }
 
       async function refreshScanCount() {
-        const dateInput = new Date().toISOString().slice(0, 10);
-        const res = await fetch(`/api/logs?date=${dateInput}`);
+        const res = await fetch("/api/scan/stats/today");
         if (!res.ok) return;
-        const logs = await res.json();
-        scanCount = logs.length;
+        const data = await res.json();
+        scanCount = Number(data.count || 0);
         scanCountEl.textContent = String(scanCount);
       }
 
@@ -151,11 +158,20 @@
       }
 
       function startScanner() {
+        const qrBoxSize = Math.max(
+          320,
+          Math.min(460, Math.floor(Math.min(window.innerWidth, window.innerHeight) * 0.55))
+        );
         const scanner = new Html5QrcodeScanner(
           "reader",
-          { fps: 10, qrbox: { width: 280, height: 280 } },
+          { fps: 10, qrbox: { width: qrBoxSize, height: qrBoxSize } },
           false
         );
+
+        const readerEl = document.getElementById("reader");
+        if (readerEl) {
+          readerEl.classList.add("mirrored-reader");
+        }
 
         scanner.render(
           (decodedText) => {

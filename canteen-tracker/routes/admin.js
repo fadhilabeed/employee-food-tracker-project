@@ -2,6 +2,8 @@ const express = require("express");
 const archiver = require("archiver");
 const multer = require("multer");
 const QRCode = require("qrcode");
+const ExcelJS = require("exceljs");
+const { stringify } = require("csv-stringify/sync");
 const pool = require("../db");
 
 const router = express.Router();
@@ -260,6 +262,22 @@ router.patch("/employees/:id", async (req, res) => {
   }
 });
 
+router.delete("/employees/all", async (_req, res) => {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    await client.query("DELETE FROM meal_logs");
+    const employeeResult = await client.query("DELETE FROM employees");
+    await client.query("COMMIT");
+    return res.json({ success: true, deleted: employeeResult.rowCount });
+  } catch (error) {
+    await client.query("ROLLBACK");
+    return res.status(500).json({ error: getErrMsg(error) });
+  } finally {
+    client.release();
+  }
+});
+
 router.delete("/employees/:id", async (req, res) => {
   const id = Number(req.params.id);
 
@@ -400,6 +418,94 @@ router.get("/logs", async (req, res) => {
       ? await pool.query(sql, [targetDate])
       : await pool.query(sql);
     return res.json(result.rows);
+  } catch (error) {
+    return res.status(500).json({ error: getErrMsg(error) });
+  }
+});
+
+router.get("/logs/export", async (req, res) => {
+  const from = typeof req.query.from === "string" ? req.query.from.trim() : "";
+  const to = typeof req.query.to === "string" ? req.query.to.toString().trim() : "";
+  const formatRaw = typeof req.query.format === "string" ? req.query.format.trim() : "csv";
+  const format = formatRaw.toLowerCase();
+
+  if (!from || !to) {
+    return res.status(400).json({ error: "from and to query params are required (YYYY-MM-DD)" });
+  }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to)) {
+    return res.status(400).json({ error: "from and to must be YYYY-MM-DD" });
+  }
+  if (!["csv", "excel"].includes(format)) {
+    return res.status(400).json({ error: "format must be csv or excel" });
+  }
+
+  try {
+    const result = await pool.query(
+      `SELECT
+         m.scanned_at,
+         m.meal_date,
+         e.emp_code,
+         e.full_name,
+         e.department,
+         m.status
+       FROM meal_logs m
+       LEFT JOIN employees e ON e.id = m.emp_id
+       WHERE m.meal_date >= $1 AND m.meal_date <= $2
+       ORDER BY m.meal_date DESC, m.scanned_at DESC`,
+      [from, to]
+    );
+
+    const rows = result.rows.map((row) => {
+      const scannedAt = row.scanned_at ? new Date(row.scanned_at) : null;
+      const time = scannedAt
+        ? scannedAt.toLocaleTimeString("en-GB", { hour12: false })
+        : "";
+      const date = row.meal_date ? String(row.meal_date) : "";
+      return {
+        Time: time,
+        Date: date,
+        "Emp Code": row.emp_code || "",
+        "Full Name": row.full_name || "",
+        Department: row.department || "",
+        Status: row.status || ""
+      };
+    });
+
+    const safeFrom = from.replaceAll(/[^0-9-]/g, "");
+    const safeTo = to.replaceAll(/[^0-9-]/g, "");
+    const fileBase =
+      safeFrom === safeTo ? `meal-logs-${safeFrom}` : `meal-logs-${safeFrom}-to-${safeTo}`;
+
+    if (format === "csv") {
+      const csv = stringify(rows, {
+        header: true,
+        columns: ["Time", "Date", "Emp Code", "Full Name", "Department", "Status"]
+      });
+      res.setHeader("Content-Type", "text/csv; charset=utf-8");
+      res.setHeader("Content-Disposition", `attachment; filename="${fileBase}.csv"`);
+      return res.send(csv);
+    }
+
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet("Meal Logs");
+    sheet.columns = [
+      { header: "Time", key: "Time", width: 12 },
+      { header: "Date", key: "Date", width: 12 },
+      { header: "Emp Code", key: "Emp Code", width: 14 },
+      { header: "Full Name", key: "Full Name", width: 24 },
+      { header: "Department", key: "Department", width: 18 },
+      { header: "Status", key: "Status", width: 12 }
+    ];
+    sheet.addRows(rows);
+    sheet.getRow(1).font = { bold: true };
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+    res.setHeader("Content-Disposition", `attachment; filename="${fileBase}.xlsx"`);
+    return res.send(Buffer.from(buffer));
   } catch (error) {
     return res.status(500).json({ error: getErrMsg(error) });
   }

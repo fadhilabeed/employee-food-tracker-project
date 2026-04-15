@@ -6,30 +6,41 @@
     <title>Canteen Admin Dashboard</title>
     <link rel="stylesheet" href="/style.css" />
   </head>
-  <body>
+  <body class="admin-page">
     <div class="container">
-      <div class="topbar">
-        <h1 class="title">Admin Dashboard</h1>
-        <div class="meta" style="display: flex; gap: 8px; align-items: center;">
+      <header class="dashboard-nav fixed-nav">
+        <div class="dashboard-title-wrap">
+          <div class="brand-mark small" aria-hidden="true">CT</div>
+          <div>
+            <h1 class="title">Admin Dashboard</h1>
+          </div>
+        </div>
+        <div class="dashboard-actions">
+          <a class="button-link secondary" href="/scanner.html">Open Scanner</a>
+          <button id="logoutBtn" type="button" class="secondary">Logout</button>
+        </div>
+      </header>
+
+      <section class="admin-actionbar card">
+        <div class="admin-action-left inline-controls">
           <label for="qrDepartment">QR Department:</label>
-          <select id="qrDepartment" style="min-width: 180px;"></select>
+          <select id="qrDepartment" class="nav-select"></select>
           <button id="downloadDeptQrBtn" class="secondary">
             Download Department QRs
           </button>
-          <details>
-            <summary style="cursor: pointer;">Import Excel</summary>
-            <div style="display: flex; gap: 8px; align-items: center; margin-top: 6px;">
-              <input type="file" id="bulkCsvFile" accept=".csv,text/csv,text/plain" />
-              <button type="button" id="bulkCsvBtn" class="secondary">Upload</button>
-              <a href="/employees_import_template.csv" download>Template</a>
-            </div>
-          </details>
-          <a href="/scanner.html">Open Scanner</a>
         </div>
-      </div>
+        <div class="admin-action-right inline-controls">
+          <span class="import-label">Import Excel</span>
+          <input type="file" id="bulkCsvFile" accept=".csv,text/csv,text/plain" />
+          <button type="button" id="bulkCsvBtn" class="secondary">Upload</button>
+          <a class="button-link secondary" href="/employees_import_template.csv" download>
+            Template
+          </a>
+        </div>
+      </section>
 
       <section class="card">
-        <h2>Add Employee</h2>
+        <h2 class="section-title">Add Employee</h2>
         <form id="addEmployeeForm" class="row">
           <div>
             <label for="emp_code">Emp Code</label>
@@ -50,26 +61,26 @@
 
       <section class="card">
         <div class="topbar">
-          <h2 style="margin: 0;">Employees</h2>
-          <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-            <input id="searchInput" placeholder="Search employees" style="min-width:220px;padding:6px 8px;" />
-            <label for="sortBy">Sort by:</label>
+          <h2 class="section-title">Employees</h2>
+          <div class="employee-toolbar">
+            <input
+              id="searchInput"
+              placeholder="Search by name or emp code..."
+              class="search-input"
+            />
+            <select id="departmentFilter">
+              <option value="">All Departments</option>
+            </select>
             <select id="sortBy">
               <option value="emp_code">Emp Code</option>
               <option value="full_name">Full Name</option>
               <option value="department">Department</option>
               <option value="status">Status</option>
-              <option value="is_active">Active</option>
             </select>
             <select id="sortDir">
               <option value="asc">Ascending</option>
               <option value="desc">Descending</option>
             </select>
-          </div>
-        </div>
-        <div class="table-controls" style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap;">
-          <div style="display:flex;align-items:center;gap:8px;">
-            <label for="rowsPerPage">Rows per page:</label>
             <select id="rowsPerPage">
               <option value="10">10</option>
               <option value="25">25</option>
@@ -77,7 +88,10 @@
               <option value="100">100</option>
             </select>
           </div>
-          <div id="paginationSummary" style="font-size:0.95rem;color:#555;">Showing 0–0 of 0 employees</div>
+        </div>
+        <div class="employee-toolbar-meta">
+          <div></div>
+          <div id="paginationSummary" class="summary-text">Showing 0–0 of 0 employees</div>
         </div>
         <table>
           <thead>
@@ -87,31 +101,38 @@
               <th>Department</th>
               <th>Status</th>
               <th>Active</th>
-              <th>QR</th>
-              <th>Delete</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody id="employeeBody"></tbody>
         </table>
-        <div class="pagination-bar" style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:12px;flex-wrap:wrap;">
-          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <div class="pagination-bar employee-pagination">
+          <div class="inline-controls employee-pagination-controls">
             <button id="firstPageBtn" type="button" class="secondary">First</button>
             <button id="prevPageBtn" type="button" class="secondary">Previous</button>
             <span id="pageIndicator">Page 1 of 1</span>
             <button id="nextPageBtn" type="button" class="secondary">Next</button>
             <button id="lastPageBtn" type="button" class="secondary">Last</button>
           </div>
-          <div id="pageCountSummary" style="font-size:0.95rem;color:#555;">Showing 0–0 of 0 employees</div>
+          <div id="pageCountSummary" class="summary-text">Showing 0–0 of 0 employees</div>
         </div>
+      </section>
+
+      <section class="card danger-zone">
+        <p class="danger-zone-label">Danger Zone</p>
+        <button id="deleteAllEmployeesBtn" type="button" class="danger-outline">
+          Delete All Employees
+        </button>
       </section>
 
       <section class="card">
         <div class="topbar">
-          <h2 style="margin: 0;">Meal Logs</h2>
-          <div style="display: flex; gap: 8px; align-items: center;">
+          <h2 class="section-title">Meal Logs</h2>
+          <div class="inline-controls">
             <label for="logDate">Date:</label>
             <input type="date" id="logDate" />
             <button id="loadLogsBtn" class="secondary">Load</button>
+            <button id="exportLogsBtn" class="secondary">Export</button>
           </div>
         </div>
         <table>
@@ -130,12 +151,21 @@
       </section>
     </div>
 
+    <div id="confirmModalBackdrop" class="modal-backdrop" role="dialog" aria-modal="true">
+      <div class="modal">
+        <h3 id="confirmTitle">Confirm</h3>
+        <div id="confirmBody"></div>
+        <div class="modal-actions" id="confirmActions"></div>
+      </div>
+    </div>
+
     <script>
       const addEmployeeForm = document.getElementById("addEmployeeForm");
       const employeeBody = document.getElementById("employeeBody");
       const logBody = document.getElementById("logBody");
       const logDateInput = document.getElementById("logDate");
       const loadLogsBtn = document.getElementById("loadLogsBtn");
+      const exportLogsBtn = document.getElementById("exportLogsBtn");
       const formError = document.getElementById("formError");
       const downloadDeptQrBtn = document.getElementById("downloadDeptQrBtn");
       const qrDepartmentSelect = document.getElementById("qrDepartment");
@@ -145,6 +175,7 @@
       const bulkCsvBtn = document.getElementById("bulkCsvBtn");
       const searchInput = document.getElementById("searchInput");
       const rowsPerPageSelect = document.getElementById("rowsPerPage");
+      const departmentFilterSelect = document.getElementById("departmentFilter");
       const firstPageBtn = document.getElementById("firstPageBtn");
       const prevPageBtn = document.getElementById("prevPageBtn");
       const nextPageBtn = document.getElementById("nextPageBtn");
@@ -152,6 +183,12 @@
       const pageIndicator = document.getElementById("pageIndicator");
       const pageCountSummary = document.getElementById("pageCountSummary");
       const paginationSummary = document.getElementById("paginationSummary");
+      const deleteAllEmployeesBtn = document.getElementById("deleteAllEmployeesBtn");
+      const logoutBtn = document.getElementById("logoutBtn");
+      const confirmModalBackdrop = document.getElementById("confirmModalBackdrop");
+      const confirmTitle = document.getElementById("confirmTitle");
+      const confirmBody = document.getElementById("confirmBody");
+      const confirmActions = document.getElementById("confirmActions");
 
       let employeesCache = [];
       let currentPage = 1;
@@ -169,6 +206,32 @@
           .replaceAll(">", "&gt;")
           .replaceAll('"', "&quot;");
       }
+
+      function openModal({ title, bodyHtml, actions }) {
+        confirmTitle.textContent = title;
+        confirmBody.innerHTML = bodyHtml;
+        confirmActions.innerHTML = "";
+        for (const action of actions) {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.textContent = action.label;
+          if (action.className) btn.className = action.className;
+          if (action.disabled) btn.disabled = true;
+          btn.addEventListener("click", action.onClick);
+          confirmActions.appendChild(btn);
+        }
+        confirmModalBackdrop.classList.add("show");
+      }
+
+      function closeModal() {
+        confirmModalBackdrop.classList.remove("show");
+        confirmBody.innerHTML = "";
+        confirmActions.innerHTML = "";
+      }
+
+      confirmModalBackdrop.addEventListener("click", (event) => {
+        if (event.target === confirmModalBackdrop) closeModal();
+      });
 
       async function fetchEmployees() {
         const res = await fetch("/api/employees");
@@ -227,17 +290,34 @@
         if (departments.includes(previousValue)) {
           qrDepartmentSelect.value = previousValue;
         }
+
+        const previousFilter = departmentFilterSelect.value;
+        departmentFilterSelect.innerHTML = `
+          <option value="">All Departments</option>
+          ${departments
+            .map(
+              (department) =>
+                `<option value="${escapeHtml(department)}">${escapeHtml(department)}</option>`
+            )
+            .join("")}
+        `;
+        if (departments.includes(previousFilter)) {
+          departmentFilterSelect.value = previousFilter;
+        }
       }
 
       function getFilteredEmployees(employees) {
         const query = searchInput.value.trim().toLowerCase();
-        if (!query) return [...employees];
+        const departmentFilter = departmentFilterSelect.value.trim().toLowerCase();
 
         return employees.filter((emp) => {
           const code = String(emp.emp_code ?? "").toLowerCase();
           const name = String(emp.full_name ?? "").toLowerCase();
           const dept = String(emp.department ?? "").toLowerCase();
-          return code.includes(query) || name.includes(query) || dept.includes(query);
+          const matchesQuery =
+            !query || code.includes(query) || name.includes(query) || dept.includes(query);
+          const matchesDepartment = !departmentFilter || dept === departmentFilter;
+          return matchesQuery && matchesDepartment;
         });
       }
 
@@ -256,43 +336,39 @@
                 <td>${escapeHtml(emp.full_name)}</td>
                 <td>${escapeHtml(emp.department || "")}</td>
                 <td>
-                  <div style="display:flex; gap:6px; align-items:center; white-space: nowrap;">
-                    <span class="badge ${statusClass}">${escapeHtml(emp.status)}</span>
-                    <button
-                      class="secondary"
-                      data-toggle-status="${emp.id}"
-                      data-next-status="${emp.status === "USED" ? "ELIGIBLE" : "USED"}"
-                      ${!emp.is_active ? "disabled" : ""}
-                      style="padding: 4px 8px; font-size: 12px;"
-                    >
-                      Edit
-                    </button>
-                  </div>
+                  <span class="badge ${statusClass}">${escapeHtml(emp.status)}</span>
                 </td>
                 <td>
-                  <label>
+                  <label class="toggle-switch" title="${emp.is_active ? "Active" : "Inactive"}">
                     <input
                       type="checkbox"
                       ${emp.is_active ? "checked" : ""}
                       data-active-toggle="${emp.id}"
                     />
-                    ${emp.is_active ? "Active" : "Inactive"}
+                    <span class="toggle-slider"></span>
                   </label>
                 </td>
                 <td>
-                  <button class="secondary" data-download-qr="${emp.id}">
-                    Download QR
-                  </button>
-                </td>
-                <td>
-                  <button
-                    class="danger"
-                    data-delete-employee="${emp.id}"
-                    data-emp-code="${escapeHtml(emp.emp_code)}"
-                    style="padding: 4px 8px; font-size: 12px;"
-                  >
-                    Delete
-                  </button>
+                  <div class="row-actions">
+                    <button class="btn-sm" data-download-qr="${emp.id}">
+                      Download QR
+                    </button>
+                    <button
+                      class="secondary btn-sm"
+                      data-toggle-status="${emp.id}"
+                      data-next-status="${emp.status === "USED" ? "ELIGIBLE" : "USED"}"
+                      ${!emp.is_active ? "disabled" : ""}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      class="danger btn-sm"
+                      data-delete-employee="${emp.id}"
+                      data-emp-code="${escapeHtml(emp.emp_code)}"
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </td>
               </tr>
             `;
@@ -424,12 +500,6 @@
         if (statusEmployeeId) {
           const nextStatus = target.getAttribute("data-next-status");
           if (!nextStatus) return;
-          const password = window.prompt("Enter admin password to edit status:");
-          if (password === null) return;
-          if (password !== "123") {
-            alert("Incorrect password");
-            return;
-          }
 
           void (async () => {
             try {
@@ -506,6 +576,67 @@
         }
       });
 
+      logoutBtn.addEventListener("click", async () => {
+        try {
+          await fetch("/api/auth/logout", { method: "POST" });
+        } finally {
+          window.location.href = "/login";
+        }
+      });
+
+      deleteAllEmployeesBtn.addEventListener("click", () => {
+        openModal({
+          title: "Delete all employees?",
+          bodyHtml:
+            "<p>Are you sure you want to delete ALL employee data? This will also delete all meal logs.</p>",
+          actions: [
+            { label: "Cancel", className: "secondary", onClick: closeModal },
+            {
+              label: "Continue",
+              className: "danger",
+              onClick: () => {
+                openModal({
+                  title: "Final confirmation",
+                  bodyHtml: `
+                    <p>This action cannot be undone. Type <b>DELETE</b> to confirm.</p>
+                    <div class="inline-controls">
+                      <input id="deleteConfirmInput" placeholder="Type DELETE" style="max-width:220px;" />
+                      <button id="confirmDeleteBtn" type="button" class="danger" disabled>Confirm Delete</button>
+                    </div>
+                    <div id="deleteAllError" class="error"></div>
+                  `,
+                  actions: [{ label: "Close", className: "secondary", onClick: closeModal }]
+                });
+
+                const input = document.getElementById("deleteConfirmInput");
+                const confirmBtn = document.getElementById("confirmDeleteBtn");
+                const errorEl = document.getElementById("deleteAllError");
+
+                input.addEventListener("input", () => {
+                  confirmBtn.disabled = input.value !== "DELETE";
+                });
+
+                confirmBtn.addEventListener("click", async () => {
+                  errorEl.textContent = "";
+                  confirmBtn.disabled = true;
+                  try {
+                    const res = await fetch("/api/employees/all", { method: "DELETE" });
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.error || "Delete failed");
+                    closeModal();
+                    alert(`Deleted ${data.deleted} employees and cleared meal logs.`);
+                    await reloadAll();
+                  } catch (error) {
+                    errorEl.textContent = error.message;
+                    confirmBtn.disabled = input.value !== "DELETE";
+                  }
+                });
+              }
+            }
+          ]
+        });
+      });
+
       sortBySelect.addEventListener("change", () => {
         renderTable(employeesCache);
       });
@@ -515,6 +646,11 @@
       });
 
       searchInput.addEventListener("input", () => {
+        currentPage = 1;
+        renderTable(employeesCache);
+      });
+
+      departmentFilterSelect.addEventListener("change", () => {
         currentPage = 1;
         renderTable(employeesCache);
       });
@@ -559,6 +695,125 @@
           `/api/employees/qr/bulk?department=${encodeURIComponent(department)}`,
           "_blank"
         );
+      });
+
+      exportLogsBtn.addEventListener("click", () => {
+        const today = todayISO();
+        openModal({
+          title: "Export meal logs",
+          bodyHtml: `
+            <div style="display:grid; gap:10px;">
+              <div>
+                <label style="display:block; margin-bottom:6px;">Period</label>
+                <div class="inline-controls">
+                  <label><input type="radio" name="period" value="daily" checked /> Daily</label>
+                  <label><input type="radio" name="period" value="weekly" /> Weekly</label>
+                  <label><input type="radio" name="period" value="monthly" /> Monthly</label>
+                </div>
+              </div>
+              <div id="periodControls"></div>
+              <div>
+                <label style="display:block; margin-bottom:6px;">Format</label>
+                <div class="inline-controls">
+                  <label><input type="radio" name="format" value="csv" checked /> CSV</label>
+                  <label><input type="radio" name="format" value="excel" /> Excel</label>
+                </div>
+              </div>
+              <div class="modal-actions" style="justify-content:flex-start;">
+                <button id="doExportBtn" type="button" class="secondary">Export</button>
+              </div>
+              <div id="exportError" class="error"></div>
+            </div>
+          `,
+          actions: [{ label: "Close", className: "secondary", onClick: closeModal }]
+        });
+
+        const controls = document.getElementById("periodControls");
+        const errorEl = document.getElementById("exportError");
+        const doExportBtn = document.getElementById("doExportBtn");
+
+        function renderPeriod() {
+          const period = document.querySelector('input[name="period"]:checked').value;
+          if (period === "daily") {
+            controls.innerHTML = `
+              <div>
+                <label for="exportDay">Date</label>
+                <input type="date" id="exportDay" value="${today}" />
+              </div>
+            `;
+          } else if (period === "weekly") {
+            controls.innerHTML = `
+              <div>
+                <label for="exportWeekStart">Start date (7 days)</label>
+                <input type="date" id="exportWeekStart" value="${today}" />
+              </div>
+            `;
+          } else {
+            const now = new Date();
+            const month = String(now.getMonth() + 1).padStart(2, "0");
+            const year = String(now.getFullYear());
+            controls.innerHTML = `
+              <div class="inline-controls">
+                <div style="min-width: 160px;">
+                  <label for="exportMonth">Month</label>
+                  <input type="month" id="exportMonth" value="${year}-${month}" />
+                </div>
+              </div>
+            `;
+          }
+        }
+
+        function addDays(iso, days) {
+          const d = new Date(iso + "T00:00:00");
+          d.setDate(d.getDate() + days);
+          return d.toISOString().slice(0, 10);
+        }
+
+        function endOfMonth(ym) {
+          const [y, m] = ym.split("-").map((x) => Number(x));
+          const d = new Date(y, m, 0);
+          return d.toISOString().slice(0, 10);
+        }
+
+        document.querySelectorAll('input[name="period"]').forEach((el) => {
+          el.addEventListener("change", renderPeriod);
+        });
+        renderPeriod();
+
+        doExportBtn.addEventListener("click", () => {
+          errorEl.textContent = "";
+          const period = document.querySelector('input[name="period"]:checked').value;
+          const format = document.querySelector('input[name="format"]:checked').value;
+
+          let from;
+          let to;
+          if (period === "daily") {
+            from = document.getElementById("exportDay").value || today;
+            to = from;
+          } else if (period === "weekly") {
+            from = document.getElementById("exportWeekStart").value || today;
+            to = addDays(from, 6);
+          } else {
+            const ym = document.getElementById("exportMonth").value;
+            if (!ym) {
+              errorEl.textContent = "Choose a month";
+              return;
+            }
+            from = `${ym}-01`;
+            to = endOfMonth(ym);
+          }
+
+          if (!from || !to) {
+            errorEl.textContent = "Invalid date range";
+            return;
+          }
+
+          const url = `/api/logs/export?from=${encodeURIComponent(from)}&to=${encodeURIComponent(
+            to
+          )}&format=${encodeURIComponent(format)}`;
+          // Navigate to trigger browser download while keeping session cookies.
+          window.location.href = url;
+        });
       });
 
       async function refreshLiveData() {

@@ -70,4 +70,17 @@ router.post("/", async (req, res) => {
   }
 });
 
+router.get("/stats/today", async (_req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT COUNT(*)::int AS count
+       FROM meal_logs
+       WHERE meal_date = CURRENT_DATE`
+    );
+    return res.json({ count: result.rows[0]?.count || 0 });
+  } catch (error) {
+    return res.status(500).json({ error: getErrMsg(error) });
+  }
+});
+
 module.exports = router;
