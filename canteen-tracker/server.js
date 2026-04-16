@@ -1,8 +1,10 @@
 const express = require("express");
 const path = require("path");
 const session = require("express-session");
+const connectPgSimple = require("connect-pg-simple");
 require("dotenv").config();
 
+const pool = require("./db");
 const scanRoutes = require("./routes/scan");
 const adminRoutes = require("./routes/admin");
 const initSchema = require("./db/init");
@@ -24,16 +26,19 @@ const SESSION_SECRET = typeof process.env.SESSION_SECRET === "string"
   ? process.env.SESSION_SECRET.trim()
   : "dev_session_secret_change_me";
 
+const sessionStore = new (connectPgSimple(session))({ pool });
+
 app.use(
   session({
+    store: sessionStore,
     secret: SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      sameSite: "lax",
+      sameSite: "strict",
       maxAge: SESSION_MAX_AGE_MS,
-      secure: process.env.NODE_ENV === "production"
+      secure: "auto"
     },
     rolling: true
   })
@@ -87,6 +92,12 @@ app.post("/api/auth/login", async (req, res) => {
       });
     });
     req.session.is_admin = true;
+    await new Promise((resolve, reject) => {
+      req.session.save((error) => {
+        if (error) return reject(error);
+        return resolve();
+      });
+    });
     return res.json({ success: true });
   } catch (_error) {
     return res.status(500).json({ error: "Failed to create session" });
