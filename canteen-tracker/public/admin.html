@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Canteen Admin Dashboard</title>
     <link rel="stylesheet" href="/style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   </head>
   <body class="admin-page">
     <div class="container">
@@ -21,23 +22,37 @@
         </div>
       </header>
 
-      <section class="admin-actionbar card">
-        <div class="admin-action-left inline-controls">
-          <label for="qrDepartment">QR Scope:</label>
-          <select id="qrDepartment" class="nav-select"></select>
-          <button id="downloadDeptQrBtn" class="secondary">
-            Download QR Codes
-          </button>
-        </div>
-        <div class="admin-action-right inline-controls">
-          <span class="import-label">Import Excel</span>
-          <input type="file" id="bulkCsvFile" accept=".csv,text/csv,text/plain" />
-          <button type="button" id="bulkCsvBtn" class="secondary">Upload</button>
-          <a class="button-link secondary" href="/employees_import_template.csv" download>
-            Template
-          </a>
-        </div>
-      </section>
+      <div class="admin-actions-container">
+        <section class="admin-action-card card">
+          <div class="inline-controls">
+            <label for="qrDepartment">QR Scope:</label>
+            <select id="qrDepartment" class="nav-select">
+              <option value="">All Departments</option>
+            </select>
+            <select id="qrEmploymentStatus" class="nav-select">
+              <option value="">All Employment</option>
+              <option value="permanent">Permanent</option>
+              <option value="contract">Contract</option>
+              <option value="casual">Casual</option>
+              <option value="on_call">On Call</option>
+              <option value="trainee">Trainee</option>
+            </select>
+            <button id="downloadDeptQrBtn" class="secondary">
+              Download QR Codes
+            </button>
+          </div>
+        </section>
+        <section class="admin-action-card card">
+          <div class="inline-controls">
+            <span class="import-label">Import Excel</span>
+            <input type="file" id="bulkCsvFile" accept=".csv,text/csv,text/plain" />
+            <button type="button" id="bulkCsvBtn" class="secondary">Upload</button>
+            <a class="button-link secondary" href="/employees_import_template.csv" download>
+              Template
+            </a>
+          </div>
+        </section>
+      </div>
 
       <section class="card">
         <h2 class="section-title">Add Employee</h2>
@@ -53,6 +68,23 @@
           <div>
             <label for="department">Department</label>
             <input id="department" name="department" placeholder="Operations" />
+          </div>
+          <div>
+            <label for="employment_status">Employment Status</label>
+            <select id="employment_status" name="employment_status">
+              <option value="permanent" selected>Permanent</option>
+              <option value="contract">Contract</option>
+              <option value="casual">Casual</option>
+              <option value="on_call">On Call</option>
+              <option value="trainee">Trainee</option>
+            </select>
+          </div>
+          <div>
+            <label for="schedule_type">Schedule</label>
+            <select id="schedule_type" name="schedule_type">
+              <option value="regular" selected>Regular</option>
+              <option value="split">Split</option>
+            </select>
           </div>
           <button type="submit">Add</button>
         </form>
@@ -89,6 +121,42 @@
             </select>
           </div>
         </div>
+        <div class="employee-filterbar inline-controls" aria-label="Employee filters">
+          <label for="employmentStatusFilter">Employment:</label>
+          <select id="employmentStatusFilter">
+            <option value="">All Employment</option>
+            <option value="permanent">Permanent</option>
+            <option value="contract">Contract</option>
+            <option value="casual">Casual</option>
+            <option value="on_call">On Call</option>
+            <option value="trainee">Trainee</option>
+          </select>
+
+          <label for="scheduleTypeFilter">Schedule:</label>
+          <select id="scheduleTypeFilter">
+            <option value="">All Schedules</option>
+            <option value="regular">Regular</option>
+            <option value="split">Split</option>
+          </select>
+
+          <label for="activeFilter">Active:</label>
+          <select id="activeFilter">
+            <option value="">All</option>
+            <option value="true">Active</option>
+            <option value="false">Inactive</option>
+          </select>
+
+          <label for="statusFilter">Status:</label>
+          <select id="statusFilter">
+            <option value="">All Status</option>
+            <option value="ELIGIBLE">Eligible</option>
+            <option value="USED">Used</option>
+          </select>
+
+          <button id="resetEmployeeFiltersBtn" class="secondary" type="button">
+            Reset Filters
+          </button>
+        </div>
         <div class="employee-toolbar-meta">
           <div></div>
           <div id="paginationSummary" class="summary-text">Showing 0–0 of 0 employees</div>
@@ -99,6 +167,8 @@
               <th>Emp Code</th>
               <th>Full Name</th>
               <th>Department</th>
+              <th>Employment Status</th>
+              <th>Schedule</th>
               <th>Status</th>
               <th>Active</th>
               <th>Actions</th>
@@ -126,15 +196,60 @@
       </section>
 
       <section class="card">
-        <div class="topbar">
+        <div class="topbar meal-logs-topbar">
           <h2 class="section-title">Meal Logs</h2>
-          <div class="inline-controls">
+          <div class="inline-controls meal-logs-controls">
             <label for="logDate">Date:</label>
             <input type="date" id="logDate" />
+            <select id="mealCategoryFilter" name="meal_category">
+              <option value="">All Categories</option>
+              <option value="breakfast">Breakfast</option>
+              <option value="lunch">Lunch</option>
+              <option value="dinner">Dinner</option>
+              <option value="outside">Outside</option>
+            </select>
+            <select id="mealDepartmentFilter" name="department"></select>
+            <select id="mealEmploymentStatusFilter" name="employment_status">
+              <option value="">All</option>
+              <option value="permanent">Permanent</option>
+              <option value="contract">Contract</option>
+              <option value="casual">Casual</option>
+              <option value="on_call">On Call</option>
+              <option value="trainee">Trainee</option>
+            </select>
+            <select id="mealStatusFilter" name="status">
+              <option value="">All</option>
+              <option value="ALLOWED">Allowed</option>
+              <option value="DENIED">Denied</option>
+            </select>
             <button id="loadLogsBtn" class="secondary">Load</button>
             <button id="exportLogsBtn" class="secondary">Export</button>
+            <button id="resetLogsFiltersBtn" class="secondary" type="button">
+              Reset Filters
+            </button>
           </div>
         </div>
+
+        <div id="logsCounters" class="logs-counters"></div>
+        <div id="logsBreakdown" class="summary-text"></div>
+        <div class="logs-chart-grid">
+          <div class="logs-chart-card">
+            <h3 class="logs-chart-title">Meal Category Distribution</h3>
+            <canvas id="logsMealCategoryChart"></canvas>
+          </div>
+          <div class="logs-chart-card">
+            <div class="chart-controls">
+              <label for="chartTypeSelect">Chart Type:</label>
+              <select id="chartTypeSelect">
+                <option value="department">Scans by Department</option>
+                <option value="employment_status">Scans by Employment Status</option>
+              </select>
+            </div>
+            <h3 class="logs-chart-title" id="dynamicChartTitle">Scans by Department</h3>
+            <canvas id="logsDepartmentChart"></canvas>
+          </div>
+        </div>
+
         <table>
           <thead>
             <tr>
@@ -143,6 +258,8 @@
               <th>Emp Code</th>
               <th>Name</th>
               <th>Department</th>
+              <th>Employment Status</th>
+              <th>Meal</th>
               <th>Status</th>
             </tr>
           </thead>
@@ -166,9 +283,25 @@
       const logDateInput = document.getElementById("logDate");
       const loadLogsBtn = document.getElementById("loadLogsBtn");
       const exportLogsBtn = document.getElementById("exportLogsBtn");
+      const resetLogsFiltersBtn = document.getElementById("resetLogsFiltersBtn");
+      const mealCategoryFilterSelect = document.getElementById("mealCategoryFilter");
+      const mealDepartmentFilterSelect = document.getElementById("mealDepartmentFilter");
+      const mealEmploymentStatusFilterSelect = document.getElementById(
+        "mealEmploymentStatusFilter"
+      );
+      const mealStatusFilterSelect = document.getElementById("mealStatusFilter");
+      const logsCountersEl = document.getElementById("logsCounters");
+      const logsBreakdownEl = document.getElementById("logsBreakdown");
+      const logsMealCategoryChartEl = document.getElementById("logsMealCategoryChart");
+      const logsDepartmentChartEl = document.getElementById(
+        "logsDepartmentChart"
+      );
+      const chartTypeSelect = document.getElementById("chartTypeSelect");
+      const dynamicChartTitle = document.getElementById("dynamicChartTitle");
       const formError = document.getElementById("formError");
       const downloadDeptQrBtn = document.getElementById("downloadDeptQrBtn");
       const qrDepartmentSelect = document.getElementById("qrDepartment");
+      const qrEmploymentStatusSelect = document.getElementById("qrEmploymentStatus");
       const sortBySelect = document.getElementById("sortBy");
       const sortDirSelect = document.getElementById("sortDir");
       const bulkCsvFile = document.getElementById("bulkCsvFile");
@@ -176,6 +309,13 @@
       const searchInput = document.getElementById("searchInput");
       const rowsPerPageSelect = document.getElementById("rowsPerPage");
       const departmentFilterSelect = document.getElementById("departmentFilter");
+      const employmentStatusFilterSelect = document.getElementById(
+        "employmentStatusFilter"
+      );
+      const scheduleTypeFilterSelect = document.getElementById("scheduleTypeFilter");
+      const activeFilterSelect = document.getElementById("activeFilter");
+      const statusFilterSelect = document.getElementById("statusFilter");
+      const resetEmployeeFiltersBtn = document.getElementById("resetEmployeeFiltersBtn");
       const firstPageBtn = document.getElementById("firstPageBtn");
       const prevPageBtn = document.getElementById("prevPageBtn");
       const nextPageBtn = document.getElementById("nextPageBtn");
@@ -193,6 +333,8 @@
       let employeesCache = [];
       let currentPage = 1;
       let pageSize = 10;
+      let logsMealCategoryChart = null;
+      let logsDepartmentChart = null;
       const LOGS_POLL_INTERVAL_MS = 5000;
 
       function todayISO() {
@@ -241,7 +383,26 @@
       }
 
       async function fetchLogs(date) {
-        const res = await fetch(`/api/logs?date=${encodeURIComponent(date)}`);
+        const params = new URLSearchParams();
+        params.set("date", date);
+
+        if (mealCategoryFilterSelect.value) {
+          params.set("meal_category", mealCategoryFilterSelect.value);
+        }
+        if (mealDepartmentFilterSelect.value) {
+          params.set("department", mealDepartmentFilterSelect.value);
+        }
+        if (mealEmploymentStatusFilterSelect.value) {
+          params.set(
+            "employment_status",
+            mealEmploymentStatusFilterSelect.value
+          );
+        }
+        if (mealStatusFilterSelect.value) {
+          params.set("status", mealStatusFilterSelect.value);
+        }
+
+        const res = await fetch(`/api/logs?${params.toString()}`);
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Failed to load logs");
         return data;
@@ -283,6 +444,7 @@
 
         qrDepartmentSelect.disabled = employeesCache.length === 0;
         downloadDeptQrBtn.disabled = employeesCache.length === 0;
+        mealDepartmentFilterSelect.disabled = employeesCache.length === 0;
         if (!previousValue) {
           qrDepartmentSelect.value = "";
         } else if (departments.includes(previousValue)) {
@@ -302,26 +464,89 @@
         if (departments.includes(previousFilter)) {
           departmentFilterSelect.value = previousFilter;
         }
+
+        const previousMealFilter = mealDepartmentFilterSelect.value;
+        mealDepartmentFilterSelect.innerHTML = `
+          <option value="">All Departments</option>
+          ${departments
+            .map(
+              (department) =>
+                `<option value="${escapeHtml(department)}">${escapeHtml(department)}</option>`
+            )
+            .join("")}
+        `;
+
+        if (departments.includes(previousMealFilter)) {
+          mealDepartmentFilterSelect.value = previousMealFilter;
+        }
       }
 
       function getFilteredEmployees(employees) {
         const query = searchInput.value.trim().toLowerCase();
         const departmentFilter = departmentFilterSelect.value.trim().toLowerCase();
+        const employmentStatusFilter = employmentStatusFilterSelect.value
+          .trim()
+          .toLowerCase();
+        const scheduleTypeFilter = scheduleTypeFilterSelect.value.trim().toLowerCase();
+        const activeFilterRaw = activeFilterSelect.value;
+        const statusFilter = statusFilterSelect.value.trim();
+        const activeFilter =
+          activeFilterRaw === "true"
+            ? true
+            : activeFilterRaw === "false"
+            ? false
+            : null;
 
         return employees.filter((emp) => {
           const code = String(emp.emp_code ?? "").toLowerCase();
           const name = String(emp.full_name ?? "").toLowerCase();
           const dept = String(emp.department ?? "").toLowerCase();
+          const employmentStatus = String(emp.employment_status ?? "").toLowerCase();
+          const scheduleType = String(emp.schedule_type ?? "").toLowerCase();
+          const isActive = Boolean(emp.is_active);
+          const status = String(emp.status ?? "");
           const matchesQuery =
             !query || code.includes(query) || name.includes(query) || dept.includes(query);
           const matchesDepartment = !departmentFilter || dept === departmentFilter;
-          return matchesQuery && matchesDepartment;
+
+          const matchesEmploymentStatus = !employmentStatusFilter || employmentStatus === employmentStatusFilter;
+          const matchesScheduleType = !scheduleTypeFilter || scheduleType === scheduleTypeFilter;
+          const matchesActive =
+            activeFilter === null ? true : isActive === activeFilter;
+          const matchesStatus = !statusFilter || status === statusFilter;
+
+          return (
+            matchesQuery &&
+            matchesDepartment &&
+            matchesEmploymentStatus &&
+            matchesScheduleType &&
+            matchesActive &&
+            matchesStatus
+          );
         });
       }
 
       function renderEmployeeRows(employees) {
         employeeBody.innerHTML = employees
           .map((emp) => {
+            const employmentKey = String(emp.employment_status ?? "permanent")
+              .toLowerCase()
+              .trim();
+            const employmentLabelMap = {
+              permanent: "Permanent",
+              contract: "Contract",
+              casual: "Casual",
+              on_call: "On Call",
+              trainee: "Trainee"
+            };
+            const employmentClassMap = {
+              permanent: "emp-permanent",
+              contract: "emp-contract",
+              casual: "emp-casual",
+              on_call: "emp-on_call",
+              trainee: "emp-trainee"
+            };
+
             const statusClass = emp.status === "ELIGIBLE"
               ? "eligible"
               : emp.status === "USED"
@@ -334,7 +559,45 @@
                 <td>${escapeHtml(emp.full_name)}</td>
                 <td>${escapeHtml(emp.department || "")}</td>
                 <td>
-                  <span class="badge ${statusClass}">${escapeHtml(emp.status)}</span>
+                  <span class="badge ${
+                    employmentClassMap[employmentKey] || "emp-trainee"
+                  }">${escapeHtml(
+                    employmentLabelMap[employmentKey] || emp.employment_status || "Permanent"
+                  )}</span>
+                </td>
+                <td>
+                  <label
+                    class="schedule-toggle-switch"
+                    title="${emp.schedule_type === "split" ? "Split" : "Regular"} schedule"
+                  >
+                    <input
+                      type="checkbox"
+                      ${emp.schedule_type === "split" ? "checked" : ""}
+                      data-schedule-toggle="${emp.id}"
+                      ${!emp.is_active ? "disabled" : ""}
+                    />
+                    <span class="schedule-toggle-slider"></span>
+                    <span class="schedule-toggle-current">${
+                      emp.schedule_type === "split" ? "Split" : "Regular"
+                    }</span>
+                  </label>
+                </td>
+                <td>
+                  <label
+                    class="status-toggle-switch"
+                    title="${emp.status === "ELIGIBLE" ? "Eligible" : "Used"}"
+                  >
+                    <input
+                      type="checkbox"
+                      ${emp.status === "ELIGIBLE" ? "checked" : ""}
+                      data-status-toggle="${emp.id}"
+                      ${!emp.is_active ? "disabled" : ""}
+                    />
+                    <span class="status-toggle-slider"></span>
+                    <span class="status-toggle-current">${
+                      emp.status === "ELIGIBLE" ? "Eligible" : "Used"
+                    }</span>
+                  </label>
                 </td>
                 <td>
                   <label class="toggle-switch" title="${emp.is_active ? "Active" : "Inactive"}">
@@ -350,14 +613,6 @@
                   <div class="row-actions">
                     <button class="btn-sm" data-download-qr="${emp.id}">
                       Download QR
-                    </button>
-                    <button
-                      class="secondary btn-sm"
-                      data-toggle-status="${emp.id}"
-                      data-next-status="${emp.status === "USED" ? "ELIGIBLE" : "USED"}"
-                      ${!emp.is_active ? "disabled" : ""}
-                    >
-                      Edit
                     </button>
                     <button
                       class="danger btn-sm"
@@ -412,11 +667,179 @@
       }
 
       function renderLogs(logs) {
+        function mealLabel(mealCategory) {
+          const v = String(mealCategory || "").toLowerCase();
+          if (v === "breakfast") return "Breakfast";
+          if (v === "lunch") return "Lunch";
+          if (v === "dinner") return "Dinner";
+          return "Outside";
+        }
+
+        function mealClass(mealCategory) {
+          const v = String(mealCategory || "").toLowerCase();
+          if (v === "breakfast") return "meal-breakfast";
+          if (v === "lunch") return "meal-lunch";
+          if (v === "dinner") return "meal-dinner";
+          return "meal-outside";
+        }
+
+        const totalScans = logs.length;
+        const allowed = logs.filter((l) => l.status === "ALLOWED").length;
+        const denied = logs.filter((l) => l.status === "DENIED").length;
+        const breakfast = logs.filter((l) => l.meal_category === "breakfast").length;
+        const lunch = logs.filter((l) => l.meal_category === "lunch").length;
+        const dinner = logs.filter((l) => l.meal_category === "dinner").length;
+
+        const departmentCounts = {};
+        logs.forEach((log) => {
+          const dept = log.department || "Unknown";
+          departmentCounts[dept] = (departmentCounts[dept] || 0) + 1;
+        });
+        const departmentLabels = Object.keys(departmentCounts);
+        const departmentData = Object.values(departmentCounts);
+
+        const employmentStatusCounts = {};
+        logs.forEach((log) => {
+          const status = log.employment_status || "Unknown";
+          employmentStatusCounts[status] = (employmentStatusCounts[status] || 0) + 1;
+        });
+        const employmentStatusLabels = Object.keys(employmentStatusCounts);
+        const employmentStatusData = Object.values(employmentStatusCounts);
+
+        if (logsCountersEl) {
+          logsCountersEl.innerHTML = `
+            <div class="logs-stat logs-stat-total">Total Scans: <b>${totalScans}</b></div>
+            <div class="logs-stat logs-stat-allowed">Allowed: <b>${allowed}</b></div>
+            <div class="logs-stat logs-stat-denied">Denied: <b>${denied}</b></div>
+            <div class="logs-stat logs-stat-breakfast">Breakfast: <b>${breakfast}</b></div>
+            <div class="logs-stat logs-stat-lunch">Lunch: <b>${lunch}</b></div>
+            <div class="logs-stat logs-stat-dinner">Dinner: <b>${dinner}</b></div>
+          `;
+        }
+
+        if (logsBreakdownEl) {
+          const date = logDateInput.value || todayISO();
+          const department = mealDepartmentFilterSelect.value
+            ? mealDepartmentFilterSelect.options[mealDepartmentFilterSelect.selectedIndex]?.text || mealDepartmentFilterSelect.value
+            : "All Departments";
+
+          const mealCategory = mealCategoryFilterSelect.value
+            ? mealCategoryFilterSelect.options[mealCategoryFilterSelect.selectedIndex]?.text || mealCategoryFilterSelect.value
+            : "All Categories";
+
+          logsBreakdownEl.textContent = `Showing results for: ${date} | ${department} | ${mealCategory}`;
+        }
+
+        const outside = logs.filter((l) => l.meal_category === "outside").length;
+
+        if (logsMealCategoryChartEl && typeof Chart !== "undefined") {
+          logsMealCategoryChart?.destroy();
+          logsMealCategoryChart = new Chart(logsMealCategoryChartEl, {
+            type: "doughnut",
+            data: {
+              labels: ["Breakfast", "Lunch", "Dinner", "Outside"],
+              datasets: [
+                {
+                  data: [breakfast, lunch, dinner, outside],
+                  backgroundColor: ["#2563eb", "#16a34a", "#d97706", "#6b7280"],
+                  borderWidth: 0
+                }
+              ]
+            },
+            options: {
+              responsive: true,
+              aspectRatio: 1.5, // Better aspect ratio for doughnut charts
+              plugins: {
+                legend: {
+                  position: "bottom"
+                },
+                tooltip: {
+                  callbacks: {
+                    label(context) {
+                      const value = context.raw || 0;
+                      const pct = totalScans > 0 ? ((value / totalScans) * 100).toFixed(1) : "0.0";
+                      return `${context.label}: ${value} (${pct}%)`;
+                    }
+                  }
+                }
+              }
+            }
+          });
+        }
+
+        if (logsDepartmentChartEl && typeof Chart !== "undefined") {
+          logsDepartmentChart?.destroy();
+
+          const chartType = chartTypeSelect.value;
+          let labels, data, title;
+
+          if (chartType === "department") {
+            labels = departmentLabels;
+            data = departmentData;
+            title = "Scans by Department";
+          } else {
+            labels = employmentStatusLabels;
+            data = employmentStatusData;
+            title = "Scans by Employment Status";
+          }
+
+          // Update the chart title
+          if (dynamicChartTitle) {
+            dynamicChartTitle.textContent = title;
+          }
+
+          logsDepartmentChart = new Chart(logsDepartmentChartEl, {
+            type: "bar",
+            data: {
+              labels: labels,
+              datasets: [
+                {
+                  label: "Scans",
+                  data: data,
+                  backgroundColor: ["#1b7f4e", "#b73434", "#2563eb", "#16a34a", "#d97706", "#6b7280", "#7c3aed", "#ec4899"],
+                  borderRadius: 8
+                }
+              ]
+            },
+            options: {
+              responsive: true,
+              aspectRatio: 1.5, // Better aspect ratio for bar charts (wider than tall)
+              plugins: {
+                legend: {
+                  display: false
+                },
+                tooltip: {
+                  callbacks: {
+                    label(context) {
+                      const value = context.raw || 0;
+                      const pct = totalScans > 0 ? ((value / totalScans) * 100).toFixed(1) : "0.0";
+                      return `Scans: ${value} (${pct}%)`;
+                    }
+                  }
+                }
+              },
+              scales: {
+                y: {
+                  beginAtZero: true,
+                  ticks: {
+                    precision: 0
+                  }
+                }
+              }
+            }
+          });
+        }
+
         logBody.innerHTML = logs
           .map((log) => {
             const time = log.scanned_at
               ? new Date(log.scanned_at).toLocaleTimeString()
               : "-";
+
+            const mealCategory = log.meal_category || "outside";
+            const meal = mealLabel(mealCategory);
+            const mealBgClass = mealClass(mealCategory);
+
             return `
               <tr>
                 <td>${escapeHtml(time)}</td>
@@ -424,6 +847,10 @@
                 <td>${escapeHtml(log.emp_code || "-")}</td>
                 <td>${escapeHtml(log.full_name || "Unknown")}</td>
                 <td>${escapeHtml(log.department || "")}</td>
+                <td>${escapeHtml(log.employment_status || "-")}</td>
+                <td>
+                  <span class="badge ${mealBgClass}">${escapeHtml(meal)}</span>
+                </td>
                 <td>${escapeHtml(log.status)}</td>
               </tr>
             `;
@@ -450,7 +877,9 @@
         const payload = {
           emp_code: document.getElementById("emp_code").value.trim(),
           full_name: document.getElementById("full_name").value.trim(),
-          department: document.getElementById("department").value.trim()
+          department: document.getElementById("department").value.trim(),
+          employment_status: document.getElementById("employment_status").value,
+          schedule_type: document.getElementById("schedule_type").value
         };
 
         try {
@@ -472,17 +901,48 @@
       employeeBody.addEventListener("change", async (event) => {
         const target = event.target;
         if (!(target instanceof HTMLInputElement)) return;
-        const id = target.getAttribute("data-active-toggle");
-        if (!id) return;
+        const activeId = target.getAttribute("data-active-toggle");
+        const scheduleId = target.getAttribute("data-schedule-toggle");
+        const statusId = target.getAttribute("data-status-toggle");
+
+        if (!activeId && !scheduleId && !statusId) return;
 
         try {
-          const res = await fetch(`/api/employees/${id}`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ is_active: target.checked })
-          });
-          const data = await res.json();
-          if (!res.ok) throw new Error(data.error || "Failed to update employee");
+          if (activeId) {
+            const res = await fetch(`/api/employees/${activeId}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ is_active: target.checked })
+            });
+            const data = await res.json();
+            if (!res.ok)
+              throw new Error(data.error || "Failed to update employee");
+          }
+
+          if (scheduleId) {
+            const nextScheduleType = target.checked ? "split" : "regular";
+            const res = await fetch(`/api/employees/${scheduleId}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ schedule_type: nextScheduleType })
+            });
+            const data = await res.json();
+            if (!res.ok)
+              throw new Error(data.error || "Failed to update schedule");
+          }
+
+          if (statusId) {
+            const nextStatus = target.checked ? "ELIGIBLE" : "USED";
+            const res = await fetch(`/api/employees/${statusId}/status`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ status: nextStatus })
+            });
+            const data = await res.json();
+            if (!res.ok)
+              throw new Error(data.error || "Failed to update status");
+          }
+
           await reloadAll();
         } catch (error) {
           alert(error.message);
@@ -493,30 +953,6 @@
       employeeBody.addEventListener("click", (event) => {
         const target = event.target;
         if (!(target instanceof HTMLButtonElement)) return;
-
-        const statusEmployeeId = target.getAttribute("data-toggle-status");
-        if (statusEmployeeId) {
-          const nextStatus = target.getAttribute("data-next-status");
-          if (!nextStatus) return;
-
-          void (async () => {
-            try {
-              const res = await fetch(`/api/employees/${statusEmployeeId}/status`, {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ status: nextStatus })
-              });
-              const data = await res.json();
-              if (!res.ok) {
-                throw new Error(data.error || "Failed to set status");
-              }
-              await reloadAll();
-            } catch (error) {
-              alert(error.message);
-            }
-          })();
-          return;
-        }
 
         const deleteId = target.getAttribute("data-delete-employee");
         if (deleteId) {
@@ -566,6 +1002,20 @@
       });
 
       loadLogsBtn.addEventListener("click", async () => {
+        try {
+          const logs = await fetchLogs(logDateInput.value || todayISO());
+          renderLogs(logs);
+        } catch (error) {
+          alert(error.message);
+        }
+      });
+
+      resetLogsFiltersBtn.addEventListener("click", async () => {
+        mealCategoryFilterSelect.value = "";
+        mealDepartmentFilterSelect.value = "";
+        mealEmploymentStatusFilterSelect.value = "";
+        mealStatusFilterSelect.value = "";
+
         try {
           const logs = await fetchLogs(logDateInput.value || todayISO());
           renderLogs(logs);
@@ -653,6 +1103,41 @@
         renderTable(employeesCache);
       });
 
+      employmentStatusFilterSelect.addEventListener("change", () => {
+        currentPage = 1;
+        renderTable(employeesCache);
+      });
+
+      scheduleTypeFilterSelect.addEventListener("change", () => {
+        currentPage = 1;
+        renderTable(employeesCache);
+      });
+
+      activeFilterSelect.addEventListener("change", () => {
+        currentPage = 1;
+        renderTable(employeesCache);
+      });
+
+      statusFilterSelect.addEventListener("change", () => {
+        currentPage = 1;
+        renderTable(employeesCache);
+      });
+
+      resetEmployeeFiltersBtn.addEventListener("click", () => {
+        departmentFilterSelect.value = "";
+        employmentStatusFilterSelect.value = "";
+        scheduleTypeFilterSelect.value = "";
+        activeFilterSelect.value = "";
+        statusFilterSelect.value = "";
+        sortBySelect.value = "emp_code";
+        sortDirSelect.value = "asc";
+        searchInput.value = "";
+        rowsPerPageSelect.value = "10";
+        pageSize = 10;
+        currentPage = 1;
+        renderTable(employeesCache);
+      });
+
       rowsPerPageSelect.addEventListener("change", () => {
         pageSize = Number(rowsPerPageSelect.value) || 10;
         currentPage = 1;
@@ -685,14 +1170,16 @@
 
       downloadDeptQrBtn.addEventListener("click", () => {
         const department = qrDepartmentSelect.value;
-        const query = department
-          ? `?department=${encodeURIComponent(department)}`
-          : "";
+        const employmentStatus = qrEmploymentStatusSelect.value;
+        const params = new URLSearchParams();
+        if (department) params.set("department", department);
+        if (employmentStatus) params.set("employment_status", employmentStatus);
+        const query = params.toString() ? `?${params.toString()}` : "";
         window.open(`/api/employees/qr/bulk${query}`, "_blank");
       });
 
       exportLogsBtn.addEventListener("click", () => {
-        const today = todayISO();
+        const selectedDate = logDateInput.value || todayISO();
         openModal({
           title: "Export meal logs",
           bodyHtml: `
@@ -732,20 +1219,20 @@
             controls.innerHTML = `
               <div>
                 <label for="exportDay">Date</label>
-                <input type="date" id="exportDay" value="${today}" />
+                <input type="date" id="exportDay" value="${selectedDate}" />
               </div>
             `;
           } else if (period === "weekly") {
             controls.innerHTML = `
               <div>
                 <label for="exportWeekStart">Start date (7 days)</label>
-                <input type="date" id="exportWeekStart" value="${today}" />
+                <input type="date" id="exportWeekStart" value="${selectedDate}" />
               </div>
             `;
           } else {
-            const now = new Date();
-            const month = String(now.getMonth() + 1).padStart(2, "0");
-            const year = String(now.getFullYear());
+            const [y, m] = selectedDate.split("-");
+            const year = String(y);
+            const month = String(m).padStart(2, "0");
             controls.innerHTML = `
               <div class="inline-controls">
                 <div style="min-width: 160px;">
@@ -804,9 +1291,35 @@
 
           const url = `/api/logs/export?from=${encodeURIComponent(from)}&to=${encodeURIComponent(
             to
-          )}&format=${encodeURIComponent(format)}`;
+          )}&format=${encodeURIComponent(format)}${
+            mealDepartmentFilterSelect.value
+              ? `&department=${encodeURIComponent(mealDepartmentFilterSelect.value)}`
+              : ""
+          }${
+            mealEmploymentStatusFilterSelect.value
+              ? `&employment_status=${encodeURIComponent(
+                  mealEmploymentStatusFilterSelect.value
+                )}`
+              : ""
+          }${
+            mealCategoryFilterSelect.value
+              ? `&meal_category=${encodeURIComponent(mealCategoryFilterSelect.value)}`
+              : ""
+          }${
+            mealStatusFilterSelect.value
+              ? `&status=${encodeURIComponent(mealStatusFilterSelect.value)}`
+              : ""
+          }`;
           // Navigate to trigger browser download while keeping session cookies.
           window.location.href = url;
+        });
+      });
+
+      chartTypeSelect.addEventListener("change", () => {
+        // Re-render the logs to update the chart with the new type
+        const date = logDateInput.value || todayISO();
+        fetchLogs(date).then(logs => renderLogs(logs)).catch(error => {
+          console.error("Failed to refresh chart:", error);
         });
       });
 

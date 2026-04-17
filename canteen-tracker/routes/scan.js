@@ -16,50 +16,71 @@ router.post("/", async (req, res) => {
   }
 
   try {
+    function getMealCategory(hour) {
+      // 11pm - 7am => breakfast, 11am - 2pm => lunch, 5pm - 7pm => dinner
+      // outside => outside defined windows
+      if (hour >= 23 || hour < 7) return "breakfast";
+      if (hour >= 11 && hour < 14) return "lunch";
+      if (hour >= 17 && hour < 19) return "dinner";
+      return "outside";
+    }
+
+    const hour = new Date().getHours();
+    const meal_category = getMealCategory(hour);
+
     const employeeResult = await pool.query(
-      `SELECT id, full_name, department
-       FROM employees
-       WHERE emp_code = $1 AND is_active = TRUE`,
+      `SELECT
+        e.*,
+        COUNT(m.id) as meals_today
+       FROM employees e
+       LEFT JOIN meal_logs m
+         ON m.emp_id = e.id
+        AND m.meal_date = CURRENT_DATE
+        AND m.status = 'ALLOWED'
+       WHERE e.emp_code = $1 AND e.is_active = true
+       GROUP BY e.id`,
       [empCode]
     );
 
     if (employeeResult.rowCount === 0) {
       await pool.query(
-        `INSERT INTO meal_logs (emp_id, meal_date, status)
-         VALUES (NULL, CURRENT_DATE, 'DENIED')`
+        `INSERT INTO meal_logs (emp_id, meal_date, status, meal_category)
+         VALUES (NULL, CURRENT_DATE, 'DENIED', $1)`,
+        [meal_category]
       );
-      return res.status(200).json({ status: "DENIED", reason: "unknown" });
+      return res.status(200).json({
+        status: "DENIED",
+        reason: "unknown",
+        meal_category
+      });
     }
 
     const employee = employeeResult.rows[0];
-    const mealsTodayResult = await pool.query(
-      `SELECT COUNT(*)::int AS meals_today
-       FROM meal_logs
-       WHERE emp_id = $1
-         AND meal_date = CURRENT_DATE
-         AND status = 'ALLOWED'`,
-      [employee.id]
-    );
+    const mealsToday = Number(employee.meals_today ?? 0);
+    const maxQuota = employee.schedule_type === "split" ? 2 : 1;
 
-    const mealsToday = mealsTodayResult.rows[0].meals_today;
-
-    if (mealsToday >= 1) {
+    if (mealsToday >= maxQuota) {
       await pool.query(
-        `INSERT INTO meal_logs (emp_id, meal_date, status)
-         VALUES ($1, CURRENT_DATE, 'DENIED')`,
-        [employee.id]
+        `INSERT INTO meal_logs (emp_id, meal_date, status, meal_category)
+         VALUES ($1, CURRENT_DATE, 'DENIED', $2)`,
+        [employee.id, meal_category]
       );
-      return res.status(200).json({ status: "DENIED", reason: "quota_used" });
+      return res.status(200).json({
+        status: "DENIED",
+        reason: "quota_used",
+        meal_category
+      });
     }
 
     await pool.query(
-      `INSERT INTO meal_logs (emp_id, meal_date, status)
-       VALUES ($1, CURRENT_DATE, 'ALLOWED')`,
-      [employee.id]
+      `INSERT INTO meal_logs (emp_id, meal_date, status, meal_category)
+       VALUES ($1, CURRENT_DATE, 'ALLOWED', $2)`,
+      [employee.id, meal_category]
     );
 
     return res.status(200).json({
       status: "ALLOWED",
+      meal_category,
       employee: {
         full_name: employee.full_name,
         department: employee.department

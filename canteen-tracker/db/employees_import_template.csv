@@ -1,3 +1,4 @@
-emp_code,full_name,department
-EMP-100,Jane Doe,Finance
-EMP-101,John Smith,Operations
+emp_code,full_name,department,employment_status,schedule_type
+# employment_status: permanent / contract / casual / on_call / trainee, schedule_type: regular / split
+EMP-100,Jane Doe,Finance,permanent,regular
+EMP-101,John Smith,Operations,contract,split

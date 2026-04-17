@@ -19,7 +19,7 @@
         </div>
         <div class="meta">Scans today: <strong id="scanCount">0</strong></div>
       </div>
-      <a href="/admin" class="scanner-admin-link">Open Admin Dashboard</a>
+      <a href="/login?next=%2Fadmin&reauth=1" class="scanner-admin-link">Open Admin Dashboard</a>
     </header>
 
     <main class="scanner-main">
@@ -121,6 +121,14 @@
         isHandlingScan = true;
 
         try {
+          function mealLabel(mealCategory) {
+            const v = String(mealCategory || "").toLowerCase();
+            if (v === "breakfast") return "Breakfast";
+            if (v === "lunch") return "Lunch";
+            if (v === "dinner") return "Dinner";
+            return "Outside";
+          }
+
           const res = await fetch("/api/scan", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -134,15 +142,19 @@
 
           if (data.status === "ALLOWED") {
             playSuccessSound();
+            const meal = mealLabel(data.meal_category);
             showResult(
               "ALLOWED",
               "ALLOWED",
-              `${data.employee.full_name} - ${data.employee.department || "N/A"}`
+              `${data.employee.full_name} - ${
+                data.employee.department || "N/A"
+              } (${meal})`
             );
           } else {
             playFailSound();
             const reason = data.reason === "quota_used" ? "Quota used today" : "Unknown / inactive";
-            showResult("DENIED", "DENIED", reason);
+            const meal = mealLabel(data.meal_category);
+            showResult("DENIED", "DENIED", `${reason} (${meal})`);
           }
 
           await refreshScanCount();

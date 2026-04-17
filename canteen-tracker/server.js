@@ -26,7 +26,10 @@ const SESSION_SECRET = typeof process.env.SESSION_SECRET === "string"
   ? process.env.SESSION_SECRET.trim()
   : "dev_session_secret_change_me";
 
-const sessionStore = new (connectPgSimple(session))({ pool });
+const sessionStore = new (connectPgSimple(session))({
+  pool,
+  createTableIfMissing: true
+});
 
 app.use(
   session({
@@ -62,10 +65,20 @@ function requireAdminSession(req, res, next) {
 }
 
 app.get("/login", (_req, res) => {
-  if (_req.session && _req.session.is_admin === true) {
+  const forceReauth =
+    typeof _req.query.reauth === "string" && _req.query.reauth.trim() === "1";
+  if (!forceReauth && _req.session && _req.session.is_admin === true) {
     return res.redirect("/admin");
   }
   return res.sendFile(path.join(__dirname, "public", "login.html"));
+});
+
+app.get("/scanner", requireAdminSession, (_req, res) => {
+  return res.sendFile(path.join(__dirname, "public", "scanner.html"));
+});
+
+app.get("/scanner.html", requireAdminSession, (_req, res) => {
+  return res.redirect("/scanner");
 });
 
 app.get("/admin", requireAdminSession, (_req, res) => {
@@ -122,7 +135,7 @@ app.post("/api/auth/logout", async (req, res) => {
 
 app.use(express.static(path.join(__dirname, "public")));
 
-app.use("/api/scan", scanRoutes);
+app.use("/api/scan", requireAdminSession, scanRoutes);
 
 // Protect admin-only endpoints.
 app.use(

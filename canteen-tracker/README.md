@@ -45,7 +45,6 @@ canteen-tracker/
    ```
 
 3. Update `.env` values:
-
    - `DB_HOST`
    - `DB_PORT`
    - `DB_NAME`
@@ -71,7 +70,7 @@ canteen-tracker/
 
 6. Open app:
 
-- Scanner page: [http://localhost:3000/scanner.html](http://localhost:3000/scanner.html)
+- Scanner page: [http://localhost:3000/scanner.html](http://localhost:3000/scanner.html) — requires admin login
 - Admin dashboard: [http://localhost:3000/admin.html](http://localhost:3000/admin.html)
 
 ## Manual DB setup (optional, non-Docker)
@@ -98,12 +97,12 @@ If you already have PostgreSQL installed locally, you can run:
 
 4. Open app:
 
-- Scanner page: [http://localhost:3000/scanner.html](http://localhost:3000/scanner.html)
+- Scanner page: [http://localhost:3000/scanner.html](http://localhost:3000/scanner.html) — requires admin login
 - Admin dashboard: [http://localhost:3000/admin.html](http://localhost:3000/admin.html)
 
 ## API Endpoints
 
-- `POST /api/scan` with `{ emp_code }`
+- `POST /api/scan` with `{ emp_code }` — requires admin session
 - `GET /api/employees`
 - `GET /api/departments`
 - `POST /api/employees`
@@ -115,6 +114,8 @@ If you already have PostgreSQL installed locally, you can run:
 - `GET /api/employees/:id/qr`
 - `GET /api/employees/qr/bulk`
 - `GET /api/employees/qr/bulk?department=<department-name>` — optional department filter
+- `GET /api/employees/qr/bulk?employment_status=<status>` — optional employment status filter
+- `GET /api/employees/qr/bulk?department=<department-name>&employment_status=<status>` — combine both filters
 
 ### Bulk import files
 

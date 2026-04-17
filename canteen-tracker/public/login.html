@@ -30,7 +30,6 @@
             />
           </div>
           <button type="submit">Login</button>
-          <a class="button-link secondary" href="/scanner.html">Back to Scanner</a>
           <div id="loginError" class="error" aria-live="polite"></div>
         </form>
       </div>
@@ -39,6 +38,7 @@
     <script>
       const loginForm = document.getElementById("loginForm");
       const loginError = document.getElementById("loginError");
+      const nextPath = new URLSearchParams(window.location.search).get("next") || "/admin";
 
       loginForm.addEventListener("submit", async (event) => {
         event.preventDefault();
@@ -58,7 +58,7 @@
           });
           const data = await res.json();
           if (!res.ok) throw new Error(data.error || "Login failed");
-          window.location.href = "/admin";
+          window.location.href = nextPath;
         } catch (error) {
           loginError.textContent = error.message;
         }
