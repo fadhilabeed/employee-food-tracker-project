@@ -2,6 +2,7 @@ const express = require("express");
 const path = require("path");
 const session = require("express-session");
 const connectPgSimple = require("connect-pg-simple");
+const bcrypt = require("bcrypt");
 require("dotenv").config();
 
 const pool = require("./db");
@@ -16,12 +17,6 @@ const SESSION_MAX_AGE_MS = 8 * 60 * 60 * 1000;
 
 app.use(express.json());
 
-const ADMIN_USERNAME = typeof process.env.ADMIN_USERNAME === "string"
-  ? process.env.ADMIN_USERNAME.trim()
-  : "admin";
-const ADMIN_PASSWORD = typeof process.env.ADMIN_PASSWORD === "string"
-  ? process.env.ADMIN_PASSWORD
-  : "canteen123";
 const SESSION_SECRET = typeof process.env.SESSION_SECRET === "string"
   ? process.env.SESSION_SECRET.trim()
   : "dev_session_secret_change_me";
@@ -93,11 +88,21 @@ app.post("/api/auth/login", async (req, res) => {
   const username = typeof req.body.username === "string" ? req.body.username.trim() : "";
   const password = typeof req.body.password === "string" ? req.body.password : "";
 
-  if (username !== ADMIN_USERNAME || password !== ADMIN_PASSWORD) {
-    return res.status(401).json({ error: "Invalid credentials" });
-  }
-
   try {
+    const result = await pool.query(
+      "SELECT password_hash FROM admin_users WHERE username = $1",
+      [username]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(401).json({ error: "Invalid credentials" });
+    }
+
+    const passwordMatch = await bcrypt.compare(password, result.rows[0].password_hash);
+    if (!passwordMatch) {
+      return res.status(401).json({ error: "Invalid credentials" });
+    }
+
     await new Promise((resolve, reject) => {
       req.session.regenerate((error) => {
         if (error) return reject(error);

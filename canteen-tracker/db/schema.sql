@@ -31,6 +31,14 @@ CREATE TABLE IF NOT EXISTS "session" (
 
 CREATE INDEX IF NOT EXISTS idx_session_expire ON "session" (expire);
 
+CREATE TABLE IF NOT EXISTS admin_users (
+  id SERIAL PRIMARY KEY,
+  username VARCHAR(50) UNIQUE NOT NULL,
+  password_hash VARCHAR(255) NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
 DROP VIEW IF EXISTS today_eligibility;
 
 CREATE VIEW today_eligibility AS
