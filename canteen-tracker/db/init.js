@@ -1,6 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const pool = require("../db");
+const seedAdmins = require("./seedAdmins");
 
 async function initSchema() {
   const schemaPath = path.join(__dirname, "schema.sql");
@@ -26,6 +27,8 @@ async function initSchema() {
   } finally {
     client.release();
   }
+
+  await seedAdmins();
 }
 
 module.exports = initSchema;
