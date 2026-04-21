@@ -45,7 +45,7 @@
         <section class="admin-action-card card">
           <div class="inline-controls">
             <span class="import-label">Import Excel</span>
-            <input type="file" id="bulkCsvFile" accept=".csv,text/csv,text/plain" />
+            <input type="file" id="bulkCsvFile" accept=".csv,.xlsx,.xls" />
             <button type="button" id="bulkCsvBtn" class="secondary">Upload</button>
             <a class="button-link secondary" href="/employees_import_template.csv" download>
               Template
@@ -981,13 +981,13 @@
       bulkCsvBtn.addEventListener("click", async () => {
         const fileInput = bulkCsvFile;
         if (!fileInput.files || fileInput.files.length === 0) {
-          alert("Choose a CSV file first");
+          alert("Choose a CSV or Excel file first");
           return;
         }
         const formData = new FormData();
         formData.append("file", fileInput.files[0]);
         try {
-          const res = await fetch("/api/employees/import/csv", {
+          const res = await fetch("/api/employees/import", {
             method: "POST",
             body: formData
           });

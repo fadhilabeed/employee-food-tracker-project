@@ -132,6 +132,63 @@ function parseEmployeesCsv(text) {
   return { rows };
 }
 
+async function parseEmployeesXlsx(buffer) {
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(buffer);
+  const worksheet = workbook.worksheets[0];
+  if (!worksheet) {
+    return { rows: [], error: "no worksheet found" };
+  }
+
+  const rows = [];
+  let headers = null;
+  worksheet.eachRow((row, rowNumber) => {
+    const cells = row.values.slice(1); // ExcelJS includes empty first cell
+    if (rowNumber === 1) {
+      headers = cells.map(h => String(h || "").toLowerCase().replace(/\s+/g, "_"));
+      return;
+    }
+    if (!headers) return;
+
+    let idxCode = headers.indexOf("emp_code");
+    let idxName = headers.indexOf("full_name");
+    let idxDept = headers.indexOf("department");
+    let idxEmploymentStatus = headers.indexOf("employment_status");
+    let idxScheduleType = headers.indexOf("schedule_type");
+
+    if (idxCode === -1 && headers.includes("code")) {
+      idxCode = headers.indexOf("code");
+    }
+    if (idxName === -1 && headers.includes("name")) {
+      idxName = headers.indexOf("name");
+    }
+    if (idxDept === -1 && headers.includes("dept")) {
+      idxDept = headers.indexOf("dept");
+    }
+
+    const empCode = cells[idxCode] ? String(cells[idxCode]).trim() : "";
+    const fullName = cells[idxName] ? String(cells[idxName]).trim() : "";
+    const department = idxDept !== -1 && cells[idxDept] ? String(cells[idxDept]).trim() : "";
+    const employment_status = idxEmploymentStatus !== -1 && cells[idxEmploymentStatus] ? String(cells[idxEmploymentStatus]).trim() : null;
+    const schedule_type = idxScheduleType !== -1 && cells[idxScheduleType] ? String(cells[idxScheduleType]).trim() : null;
+
+    if (!empCode && !fullName) return;
+    rows.push({
+      emp_code: empCode,
+      full_name: fullName,
+      department: department || null,
+      employment_status,
+      schedule_type
+    });
+  });
+
+  if (!headers || headers.indexOf("emp_code") === -1 || headers.indexOf("full_name") === -1) {
+    return { rows: [], error: "Excel must include header row with emp_code (or code) and full_name (or name)" };
+  }
+
+  return { rows };
+}
+
 async function bulkInsertEmployees(rows, res) {
   if (!rows.length) {
     return res.status(400).json({ error: "no valid rows to import" });
@@ -273,13 +330,24 @@ router.post("/employees/bulk", async (req, res) => {
   return bulkInsertEmployees(employees, res);
 });
 
-router.post("/employees/import/csv", upload.single("file"), async (req, res) => {
+router.post("/employees/import", upload.single("file"), async (req, res) => {
   if (!req.file || !req.file.buffer) {
-    return res.status(400).json({ error: "CSV file required (form field name: file)" });
+    return res.status(400).json({ error: "File required (form field name: file)" });
   }
 
-  const text = req.file.buffer.toString("utf8");
-  const parsed = parseEmployeesCsv(text);
+  const mimetype = req.file.mimetype;
+  const originalname = req.file.originalname.toLowerCase();
+  let parsed;
+
+  if (mimetype === "text/csv" || mimetype === "application/csv" || originalname.endsWith(".csv")) {
+    const text = req.file.buffer.toString("utf8");
+    parsed = parseEmployeesCsv(text);
+  } else if (mimetype === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" || mimetype === "application/vnd.ms-excel" || originalname.endsWith(".xlsx") || originalname.endsWith(".xls")) {
+    parsed = await parseEmployeesXlsx(req.file.buffer);
+  } else {
+    return res.status(400).json({ error: "Unsupported file type. Please upload CSV or Excel file." });
+  }
+
   if (parsed.error) {
     return res.status(400).json({ error: parsed.error });
   }
