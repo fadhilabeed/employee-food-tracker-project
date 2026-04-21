@@ -593,7 +593,7 @@ router.get("/logs", async (req, res) => {
     typeof req.query.meal_category === "string" ? req.query.meal_category.trim() : "";
   const rawStatus = typeof req.query.status === "string" ? req.query.status.trim() : "";
 
-  const mealCategories = new Set(["breakfast", "lunch", "dinner", "outside"]);
+  const mealCategories = new Set(["breakfast", "lunch", "dinner", "supper", "outside"]);
   const mealCategory = rawMealCategory ? rawMealCategory.toLowerCase() : "";
   if (mealCategory && !mealCategories.has(mealCategory)) {
     return res.status(400).json({ error: "invalid meal_category" });
@@ -692,7 +692,7 @@ router.get("/logs/export", async (req, res) => {
       typeof req.query.meal_category === "string" ? req.query.meal_category.trim() : "";
     const rawStatus = typeof req.query.status === "string" ? req.query.status.trim() : "";
 
-    const mealCategories = new Set(["breakfast", "lunch", "dinner", "outside"]);
+    const mealCategories = new Set(["breakfast", "lunch", "dinner", "supper", "outside"]);
     const mealCategory = rawMealCategory ? rawMealCategory.toLowerCase() : "";
     if (mealCategory && !mealCategories.has(mealCategory)) {
       return res.status(400).json({ error: "invalid meal_category" });

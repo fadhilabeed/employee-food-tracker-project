@@ -664,6 +664,10 @@ select:focus {
   background: #d97706;
 }
 
+.meal-supper {
+  background: #7c3aed;
+}
+
 .meal-outside {
   background: #6b7280;
 }
@@ -708,6 +712,10 @@ select:focus {
 
 .logs-stat-dinner {
   background: rgba(217, 119, 6, 0.1);
+}
+
+.logs-stat-supper {
+  background: rgba(124, 58, 237, 0.1);
 }
 
 .logs-chart-grid {

@@ -50,9 +50,10 @@ function getJakartaCurrentDate(date = new Date()) {
 }
 
 function getMealCategory(hour) {
-  if (hour >= 23 || hour < 7) return "breakfast";
+  if (hour >= 7 && hour < 9) return "breakfast";
   if (hour >= 11 && hour < 14) return "lunch";
   if (hour >= 17 && hour < 19) return "dinner";
+  if (hour >= 23 || hour < 2) return "supper";
   return "outside";
 }
 

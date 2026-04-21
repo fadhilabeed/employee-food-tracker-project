@@ -210,9 +210,10 @@
             </select>
             <select id="mealCategoryFilter" name="meal_category">
               <option value="">All Categories</option>
-              <option value="breakfast">Breakfast</option>
-              <option value="lunch">Lunch</option>
-              <option value="dinner">Dinner</option>
+              <option value="breakfast">Breakfast (7am - 9am)</option>
+              <option value="lunch">Lunch (11am - 2pm)</option>
+              <option value="dinner">Dinner (5pm - 7pm)</option>
+              <option value="supper">Supper (11pm - 2am)</option>
               <option value="outside">Outside</option>
             </select>
             <select id="mealDepartmentFilter" name="department"></select>
@@ -737,6 +738,7 @@
           if (v === "breakfast") return "Breakfast";
           if (v === "lunch") return "Lunch";
           if (v === "dinner") return "Dinner";
+          if (v === "supper") return "Supper";
           return "Outside";
         }
 
@@ -745,6 +747,7 @@
           if (v === "breakfast") return "meal-breakfast";
           if (v === "lunch") return "meal-lunch";
           if (v === "dinner") return "meal-dinner";
+          if (v === "supper") return "meal-supper";
           return "meal-outside";
         }
 
@@ -754,6 +757,7 @@
         const breakfast = logs.filter((l) => l.meal_category === "breakfast").length;
         const lunch = logs.filter((l) => l.meal_category === "lunch").length;
         const dinner = logs.filter((l) => l.meal_category === "dinner").length;
+        const supper = logs.filter((l) => l.meal_category === "supper").length;
 
         const departmentCounts = {};
         logs.forEach((log) => {
@@ -779,6 +783,7 @@
             <div class="logs-stat logs-stat-breakfast">Breakfast: <b>${breakfast}</b></div>
             <div class="logs-stat logs-stat-lunch">Lunch: <b>${lunch}</b></div>
             <div class="logs-stat logs-stat-dinner">Dinner: <b>${dinner}</b></div>
+            <div class="logs-stat logs-stat-supper">Supper: <b>${supper}</b></div>
           `;
         }
 
@@ -802,11 +807,11 @@
           logsMealCategoryChart = new Chart(logsMealCategoryChartEl, {
             type: "doughnut",
             data: {
-              labels: ["Breakfast", "Lunch", "Dinner", "Outside"],
+              labels: ["Breakfast", "Lunch", "Dinner", "Supper", "Outside"],
               datasets: [
                 {
-                  data: [breakfast, lunch, dinner, outside],
-                  backgroundColor: ["#2563eb", "#16a34a", "#d97706", "#6b7280"],
+                  data: [breakfast, lunch, dinner, supper, outside],
+                  backgroundColor: ["#2563eb", "#16a34a", "#d97706", "#7c3aed", "#6b7280"],
                   borderWidth: 0
                 }
               ]

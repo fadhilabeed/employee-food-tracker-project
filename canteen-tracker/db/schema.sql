@@ -29,6 +29,13 @@ ALTER TABLE meal_logs
 ALTER TABLE meal_logs
   ALTER COLUMN scanned_at SET DEFAULT (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Jakarta');
 
+ALTER TABLE meal_logs
+  DROP CONSTRAINT IF EXISTS meal_logs_meal_category_check;
+
+ALTER TABLE meal_logs
+  ADD CONSTRAINT meal_logs_meal_category_check
+  CHECK (meal_category IN ('breakfast', 'lunch', 'dinner', 'supper', 'outside'));
+
 CREATE TABLE IF NOT EXISTS "session" (
   sid VARCHAR PRIMARY KEY,
   sess JSON NOT NULL,
