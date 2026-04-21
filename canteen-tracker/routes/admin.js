@@ -6,6 +6,7 @@ const ExcelJS = require("exceljs");
 const { stringify } = require("csv-stringify/sync");
 const pool = require("../db");
 const path = require("path");
+const { getJakartaCurrentDate, getJakartaNow, getMealCategory } = require("../utils/jakartaTime");
 
 const router = express.Router();
 const upload = multer({
@@ -518,15 +519,7 @@ router.patch("/employees/:id/status", async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
-
-    function getMealCategory(hour) {
-      if (hour >= 23 || hour < 7) return "breakfast";
-      if (hour >= 11 && hour < 14) return "lunch";
-      if (hour >= 17 && hour < 19) return "dinner";
-      return "outside";
-    }
-
-    const hour = new Date().getHours();
+    const { hour, mealDate, scannedAt } = getJakartaNow();
     const meal_category = getMealCategory(hour);
 
     const employeeResult = await client.query(
@@ -553,18 +546,18 @@ router.patch("/employees/:id/status", async (req, res) => {
       await client.query(
         `DELETE FROM meal_logs
          WHERE emp_id = $1
-           AND meal_date = CURRENT_DATE
+           AND meal_date = $2
            AND status = 'ALLOWED'`,
-        [id]
+        [id, mealDate]
       );
     } else {
       const allowedCountResult = await client.query(
         `SELECT COUNT(*)::int AS allowed_count
          FROM meal_logs
          WHERE emp_id = $1
-           AND meal_date = CURRENT_DATE
+           AND meal_date = $2
            AND status = 'ALLOWED'`,
-        [id]
+        [id, mealDate]
       );
 
       const allowedCount = allowedCountResult.rows[0]?.allowed_count || 0;
@@ -572,9 +565,9 @@ router.patch("/employees/:id/status", async (req, res) => {
 
       for (let i = 0; i < toInsert; i += 1) {
         await client.query(
-          `INSERT INTO meal_logs (emp_id, meal_date, status, meal_category)
-           VALUES ($1, CURRENT_DATE, 'ALLOWED', $2)`,
-          [id, meal_category]
+          `INSERT INTO meal_logs (emp_id, meal_date, scanned_at, status, meal_category)
+           VALUES ($1, $2, $3, 'ALLOWED', $4)`,
+          [id, mealDate, scannedAt, meal_category]
         );
       }
     }
@@ -624,7 +617,8 @@ router.get("/logs", async (req, res) => {
       whereClauses.push(`m.meal_date = $${params.length + 1}`);
       params.push(targetDate);
     } else {
-      whereClauses.push(`m.meal_date = CURRENT_DATE`);
+      whereClauses.push(`m.meal_date = $${params.length + 1}`);
+      params.push(getJakartaCurrentDate());
     }
 
     if (rawDepartment) {

@@ -4,24 +4,30 @@ CREATE TABLE IF NOT EXISTS employees (
   full_name   VARCHAR(100) NOT NULL,
   department  VARCHAR(60),
   is_active   BOOLEAN DEFAULT TRUE,
-  created_at  TIMESTAMP DEFAULT NOW()
+  created_at  TIMESTAMP DEFAULT (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Jakarta')
 );
 
 ALTER TABLE employees
   ADD COLUMN IF NOT EXISTS employment_status VARCHAR(20) DEFAULT 'permanent',
   ADD COLUMN IF NOT EXISTS schedule_type VARCHAR(10) DEFAULT 'regular';
 
+ALTER TABLE employees
+  ALTER COLUMN created_at SET DEFAULT (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Jakarta');
+
 CREATE TABLE IF NOT EXISTS meal_logs (
   id          SERIAL PRIMARY KEY,
   emp_id      INT REFERENCES employees(id),
   meal_date   DATE NOT NULL,
-  scanned_at  TIMESTAMP DEFAULT NOW(),
+  scanned_at  TIMESTAMP DEFAULT (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Jakarta'),
   meal_category VARCHAR(10) DEFAULT 'outside',
   status      VARCHAR(10) NOT NULL CHECK (status IN ('ALLOWED', 'DENIED'))
 );
 
 ALTER TABLE meal_logs
   ADD COLUMN IF NOT EXISTS meal_category VARCHAR(10) DEFAULT 'outside';
+
+ALTER TABLE meal_logs
+  ALTER COLUMN scanned_at SET DEFAULT (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Jakarta');
 
 CREATE TABLE IF NOT EXISTS "session" (
   sid VARCHAR PRIMARY KEY,
@@ -35,9 +41,13 @@ CREATE TABLE IF NOT EXISTS admin_users (
   id SERIAL PRIMARY KEY,
   username VARCHAR(50) UNIQUE NOT NULL,
   password_hash VARCHAR(255) NOT NULL,
-  created_at TIMESTAMP DEFAULT NOW(),
-  updated_at TIMESTAMP DEFAULT NOW()
+  created_at TIMESTAMP DEFAULT (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Jakarta'),
+  updated_at TIMESTAMP DEFAULT (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Jakarta')
 );
+
+ALTER TABLE admin_users
+  ALTER COLUMN created_at SET DEFAULT (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Jakarta'),
+  ALTER COLUMN updated_at SET DEFAULT (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Jakarta');
 
 DROP VIEW IF EXISTS today_eligibility;
 
@@ -57,7 +67,9 @@ SELECT
   END AS status
 FROM employees e
 LEFT JOIN meal_logs m
-  ON m.emp_id = e.id AND m.meal_date = CURRENT_DATE AND m.status = 'ALLOWED'
+  ON m.emp_id = e.id
+ AND m.meal_date = ((CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Jakarta')::date)
+ AND m.status = 'ALLOWED'
 WHERE e.is_active = TRUE
 GROUP BY
   e.id,

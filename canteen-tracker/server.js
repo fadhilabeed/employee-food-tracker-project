@@ -1,9 +1,13 @@
+require("dotenv").config();
+
+process.env.APP_TIMEZONE = process.env.APP_TIMEZONE || "Asia/Jakarta";
+process.env.TZ = process.env.APP_TIMEZONE;
+
 const express = require("express");
 const path = require("path");
 const session = require("express-session");
 const connectPgSimple = require("connect-pg-simple");
 const bcrypt = require("bcrypt");
-require("dotenv").config();
 
 const pool = require("./db");
 const scanRoutes = require("./routes/scan");

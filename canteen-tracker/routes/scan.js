@@ -1,5 +1,6 @@
 const express = require("express");
 const pool = require("../db");
+const { getJakartaCurrentDate, getJakartaNow, getMealCategory } = require("../utils/jakartaTime");
 
 const router = express.Router();
 const getErrMsg = (error) =>
@@ -16,16 +17,7 @@ router.post("/", async (req, res) => {
   }
 
   try {
-    function getMealCategory(hour) {
-      // 11pm - 7am => breakfast, 11am - 2pm => lunch, 5pm - 7pm => dinner
-      // outside => outside defined windows
-      if (hour >= 23 || hour < 7) return "breakfast";
-      if (hour >= 11 && hour < 14) return "lunch";
-      if (hour >= 17 && hour < 19) return "dinner";
-      return "outside";
-    }
-
-    const hour = new Date().getHours();
+    const { hour, mealDate, scannedAt } = getJakartaNow();
     const meal_category = getMealCategory(hour);
 
     const employeeResult = await pool.query(
@@ -35,18 +27,18 @@ router.post("/", async (req, res) => {
        FROM employees e
        LEFT JOIN meal_logs m
          ON m.emp_id = e.id
-        AND m.meal_date = CURRENT_DATE
+        AND m.meal_date = $2
         AND m.status = 'ALLOWED'
        WHERE e.emp_code = $1 AND e.is_active = true
        GROUP BY e.id`,
-      [empCode]
+      [empCode, mealDate]
     );
 
     if (employeeResult.rowCount === 0) {
       await pool.query(
-        `INSERT INTO meal_logs (emp_id, meal_date, status, meal_category)
-         VALUES (NULL, CURRENT_DATE, 'DENIED', $1)`,
-        [meal_category]
+        `INSERT INTO meal_logs (emp_id, meal_date, scanned_at, status, meal_category)
+         VALUES (NULL, $1, $2, 'DENIED', $3)`,
+        [mealDate, scannedAt, meal_category]
       );
       return res.status(200).json({
         status: "DENIED",
@@ -61,9 +53,9 @@ router.post("/", async (req, res) => {
 
     if (mealsToday >= maxQuota) {
       await pool.query(
-        `INSERT INTO meal_logs (emp_id, meal_date, status, meal_category)
-         VALUES ($1, CURRENT_DATE, 'DENIED', $2)`,
-        [employee.id, meal_category]
+        `INSERT INTO meal_logs (emp_id, meal_date, scanned_at, status, meal_category)
+         VALUES ($1, $2, $3, 'DENIED', $4)`,
+        [employee.id, mealDate, scannedAt, meal_category]
       );
       return res.status(200).json({
         status: "DENIED",
@@ -73,9 +65,9 @@ router.post("/", async (req, res) => {
     }
 
     await pool.query(
-      `INSERT INTO meal_logs (emp_id, meal_date, status, meal_category)
-       VALUES ($1, CURRENT_DATE, 'ALLOWED', $2)`,
-      [employee.id, meal_category]
+      `INSERT INTO meal_logs (emp_id, meal_date, scanned_at, status, meal_category)
+       VALUES ($1, $2, $3, 'ALLOWED', $4)`,
+      [employee.id, mealDate, scannedAt, meal_category]
     );
 
     return res.status(200).json({
@@ -93,10 +85,12 @@ router.post("/", async (req, res) => {
 
 router.get("/stats/today", async (_req, res) => {
   try {
+    const mealDate = getJakartaCurrentDate();
     const result = await pool.query(
       `SELECT COUNT(*)::int AS count
        FROM meal_logs
-       WHERE meal_date = CURRENT_DATE`
+       WHERE meal_date = $1`,
+      [mealDate]
     );
     return res.json({ count: result.rows[0]?.count || 0 });
   } catch (error) {

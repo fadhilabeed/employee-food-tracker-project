@@ -336,9 +336,24 @@
       let logsMealCategoryChart = null;
       let logsDepartmentChart = null;
       const LOGS_POLL_INTERVAL_MS = 5000;
+      const APP_TIME_ZONE = "Asia/Jakarta";
 
       function todayISO() {
-        return new Date().toISOString().slice(0, 10);
+        const values = {};
+        const formatter = new Intl.DateTimeFormat("en-CA", {
+          timeZone: APP_TIME_ZONE,
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit"
+        });
+
+        for (const part of formatter.formatToParts(new Date())) {
+          if (part.type !== "literal") {
+            values[part.type] = part.value;
+          }
+        }
+
+        return `${values.year}-${values.month}-${values.day}`;
       }
 
       function escapeHtml(value) {
