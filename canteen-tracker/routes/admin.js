@@ -650,7 +650,7 @@ router.get("/logs", async (req, res) => {
         e.department,
         e.employment_status,
         e.schedule_type,
-        m.meal_date,
+        m.meal_date::text AS meal_date,
         COALESCE(m.meal_category, 'outside') as meal_category,
         m.scanned_at,
         m.status
@@ -741,7 +741,7 @@ router.get("/logs/export", async (req, res) => {
     const result = await pool.query(
       `SELECT
          m.scanned_at,
-         m.meal_date,
+         m.meal_date::text AS meal_date,
          COALESCE(m.meal_category, 'outside') as meal_category,
          e.emp_code,
          e.full_name,
