@@ -201,6 +201,13 @@
           <div class="inline-controls meal-logs-controls">
             <label for="logDate">Date:</label>
             <input type="date" id="logDate" />
+            <label for="logsRowsPerPage">Show:</label>
+            <select id="logsRowsPerPage">
+              <option value="10" selected>10</option>
+              <option value="25">25</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+            </select>
             <select id="mealCategoryFilter" name="meal_category">
               <option value="">All Categories</option>
               <option value="breakfast">Breakfast</option>
@@ -265,6 +272,16 @@
           </thead>
           <tbody id="logBody"></tbody>
         </table>
+        <div class="pagination-bar employee-pagination">
+          <div class="inline-controls employee-pagination-controls">
+            <button id="logsFirstPageBtn" type="button" class="secondary">First</button>
+            <button id="logsPrevPageBtn" type="button" class="secondary">Previous</button>
+            <span id="logsPageIndicator">Page 1 of 1</span>
+            <button id="logsNextPageBtn" type="button" class="secondary">Next</button>
+            <button id="logsLastPageBtn" type="button" class="secondary">Last</button>
+          </div>
+          <div id="logsPageCountSummary" class="summary-text">Showing 0-0 of 0 meal logs</div>
+        </div>
       </section>
     </div>
 
@@ -290,6 +307,13 @@
         "mealEmploymentStatusFilter"
       );
       const mealStatusFilterSelect = document.getElementById("mealStatusFilter");
+      const logsRowsPerPageSelect = document.getElementById("logsRowsPerPage");
+      const logsFirstPageBtn = document.getElementById("logsFirstPageBtn");
+      const logsPrevPageBtn = document.getElementById("logsPrevPageBtn");
+      const logsNextPageBtn = document.getElementById("logsNextPageBtn");
+      const logsLastPageBtn = document.getElementById("logsLastPageBtn");
+      const logsPageIndicator = document.getElementById("logsPageIndicator");
+      const logsPageCountSummary = document.getElementById("logsPageCountSummary");
       const logsCountersEl = document.getElementById("logsCounters");
       const logsBreakdownEl = document.getElementById("logsBreakdown");
       const logsMealCategoryChartEl = document.getElementById("logsMealCategoryChart");
@@ -331,8 +355,11 @@
       const confirmActions = document.getElementById("confirmActions");
 
       let employeesCache = [];
+      let logsCache = [];
       let currentPage = 1;
       let pageSize = 10;
+      let logsCurrentPage = 1;
+      let logsPageSize = 10;
       let logsMealCategoryChart = null;
       let logsDepartmentChart = null;
       const LOGS_POLL_INTERVAL_MS = 5000;
@@ -687,7 +714,24 @@
         renderPagination(totalItems);
       }
 
+      function renderLogsPagination(totalItems) {
+        const totalPages = Math.max(1, Math.ceil(totalItems / logsPageSize));
+        if (logsCurrentPage > totalPages) logsCurrentPage = totalPages;
+
+        logsPageIndicator.textContent = `Page ${totalItems === 0 ? 0 : logsCurrentPage} of ${totalPages}`;
+        logsFirstPageBtn.disabled = totalItems === 0 || logsCurrentPage <= 1;
+        logsPrevPageBtn.disabled = totalItems === 0 || logsCurrentPage <= 1;
+        logsNextPageBtn.disabled = totalItems === 0 || logsCurrentPage >= totalPages;
+        logsLastPageBtn.disabled = totalItems === 0 || logsCurrentPage >= totalPages;
+
+        const start = totalItems === 0 ? 0 : (logsCurrentPage - 1) * logsPageSize + 1;
+        const end = Math.min(totalItems, logsCurrentPage * logsPageSize);
+        logsPageCountSummary.textContent = `Showing ${start}-${end} of ${totalItems} meal logs`;
+      }
+
       function renderLogs(logs) {
+        logsCache = logs;
+
         function mealLabel(mealCategory) {
           const v = String(mealCategory || "").toLowerCase();
           if (v === "breakfast") return "Breakfast";
@@ -851,7 +895,14 @@
           });
         }
 
-        logBody.innerHTML = logs
+        const totalItems = logs.length;
+        const totalPages = Math.max(1, Math.ceil(totalItems / logsPageSize));
+        if (logsCurrentPage > totalPages) logsCurrentPage = totalPages;
+        const start = (logsCurrentPage - 1) * logsPageSize;
+        const end = start + logsPageSize;
+        const visibleLogs = logs.slice(start, end);
+
+        logBody.innerHTML = visibleLogs
           .map((log) => {
             const time = log.scanned_at
               ? new Date(log.scanned_at).toLocaleTimeString()
@@ -878,6 +929,8 @@
             `;
           })
           .join("");
+
+        renderLogsPagination(totalItems);
       }
 
       async function reloadAll() {
@@ -1025,6 +1078,7 @@
 
       loadLogsBtn.addEventListener("click", async () => {
         try {
+          logsCurrentPage = 1;
           const logs = await fetchLogs(logDateInput.value || todayISO());
           renderLogs(logs);
         } catch (error) {
@@ -1039,6 +1093,7 @@
         mealStatusFilterSelect.value = "";
 
         try {
+          logsCurrentPage = 1;
           const logs = await fetchLogs(logDateInput.value || todayISO());
           renderLogs(logs);
         } catch (error) {
@@ -1166,6 +1221,12 @@
         renderTable(employeesCache);
       });
 
+      logsRowsPerPageSelect.addEventListener("change", () => {
+        logsPageSize = Number(logsRowsPerPageSelect.value) || 10;
+        logsCurrentPage = 1;
+        renderLogs(logsCache);
+      });
+
       firstPageBtn.addEventListener("click", () => {
         currentPage = 1;
         renderTable(employeesCache);
@@ -1188,6 +1249,32 @@
         const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
         currentPage = totalPages;
         renderTable(employeesCache);
+      });
+
+      logsFirstPageBtn.addEventListener("click", () => {
+        logsCurrentPage = 1;
+        renderLogs(logsCache);
+      });
+
+      logsPrevPageBtn.addEventListener("click", () => {
+        if (logsCurrentPage > 1) {
+          logsCurrentPage -= 1;
+          renderLogs(logsCache);
+        }
+      });
+
+      logsNextPageBtn.addEventListener("click", () => {
+        const totalPages = Math.max(1, Math.ceil(logsCache.length / logsPageSize));
+        if (logsCurrentPage < totalPages) {
+          logsCurrentPage += 1;
+          renderLogs(logsCache);
+        }
+      });
+
+      logsLastPageBtn.addEventListener("click", () => {
+        const totalPages = Math.max(1, Math.ceil(logsCache.length / logsPageSize));
+        logsCurrentPage = totalPages;
+        renderLogs(logsCache);
       });
 
       downloadDeptQrBtn.addEventListener("click", () => {
